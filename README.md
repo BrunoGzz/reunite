@@ -1,211 +1,159 @@
 # Reunite
 
-A web app for volunteers in evacuation shelters to help separated families find each other, without exposing anyone who does not want to be found.
+Reunite helps shelter volunteers reunite families separated during a hurricane evacuation. A volunteer registers the people who arrive at their shelter and searches on behalf of relatives who are looking for someone. The app finds likely matches across all shelters and only connects two people when the person who was found says yes.
 
-Built for the DALI Lab challenge "Reuniting Separated Families".
+**Live demo:** https://dali.bruno.com.es
+**Repository:** [TODO: GitHub link]
 
-Live demo: https://dali.bruno.com.es
+No login is needed. Pick a shelter in the sidebar and you are a volunteer there. Switch shelters to see the other side of a match.
 
-## Overview
-
-A hurricane forces about 400,000 people to leave a coastal region with two days of warning. People end up in dozens of shelters, hotels and relatives' homes, and thousands of families are separated.
-
-Reunite is the tool a tired shelter volunteer would have open on a laptop at 2 a.m. They can:
-
-- **Register** people who are in their shelter, by speaking or typing.
-- **Search** for a missing family member on behalf of the family standing at the desk.
-- **Get alerts** when a new arrival looks like someone a family is searching for.
-- **Pass on contact requests**, so the person being sought decides whether to be found.
-
-Three ideas make it different from a name search:
-
-1. **Places, not just names.** People are often found by where they were. Besides describing the person, we record the last place they were known to be (a school, a care home, a street). Matching uses that place even when there is no name, so a child who cannot say his name can still be connected to the school his mother is asking about.
-2. **Reciprocal search.** If A searches for B and B searches for A, that is the strongest signal, and the flow gets shorter.
-3. **Voice entry.** Hold a microphone button and speak, in any language. The AI fills the form, marks what it is unsure of in yellow, and the volunteer reviews before saving.
-
-One rule runs through everything: **nobody sees another person's location until that person accepts contact.**
-
-### Try it
-
-Open the live demo. There is no login: use the shelter selector at the top of the sidebar to act as any shelter. The app only holds fake data. Open two browser windows (for example one normal and one private) to play two shelters at once. The sidebar is organised by direction: "Our searches" are the people this shelter is looking for, "Looking for people here" are families asking about people registered at this shelter. Each item shows a count when something is waiting. The seeded cases are:
-
-| Case | Where to look |
-|---|---|
-| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits at the child's shelter (Riverside) under "Looking for people here" as a "Possible match to confirm", led by the name the family gave: "May be: Daniel Reyes". Staff checks it with the child. Confirm saves the name on his record and the mother's search at St. Mary's lights up in "Our searches". |
-| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | At Riverside, "Our searches" shows the daughter's search highlighted. Send a contact request from its results: it goes to Harbor View Hotel, where she is, labelled "Staff decides: this person can't decide alone". No other shelter sees it. |
-| A couple searching for each other. | Riverside and St. Mary's both see their search highlighted with a Reciprocal badge. Both directions score 85% or more, so their request needs no photo. |
-| A person registered under an alias ("Mr. Blue"). | Riverside's open search for "Tomas Ferrer" finds him through marks and place, with a lower score. |
-| A person who will decline contact. | At Harbor View Hotel, open "Looking for people here" and decline. At Riverside, the search card in "Our searches" still says "Request sent. Pending confirmation." |
-| A husband rescued later. | Harbor View has an open search by his wife for Tom Whitaker. He is not registered anywhere yet. Keep Harbor View's window open, then register him at another shelter ("Register a person": Tom Whitaker, male, 58, last place Pelican Street). His wife's search lights up in "Our searches" within 15 seconds. |
-
-"Reset demo data", at the bottom of the sidebar, puts everything back.
-
-### Screenshots
-
-**Home** is two large buttons. The sidebar is organised by direction, with a count on every item that has something waiting.
+[TODO: check file names in docs/screenshots/]
 
 ![Home](docs/screenshots/home.png)
-
-**Our searches** has one card per search from this shelter, phrased "Elena Delgado (here) is looking for Rosa Delgado". Each card shows where its search stands: no matches yet, possible match, request sent, or reunited with the location. Cards with something new are highlighted.
-
-![Our searches](docs/screenshots/our-searches.png)
-
-**Looking for people here** holds everything others started about people registered at this shelter, and only this shelter sees it. A request for a child or someone who cannot decide alone is marked "Staff decides: this person can't decide alone", and a match where a name is missing appears as a "Possible match to confirm" with Confirm and Dismiss.
-
-![Looking for people here](docs/screenshots/looking-for-people-here.png)
-
-**Possible match to confirm.** A strong match where a name is missing goes to the shelter where the registered person is, because only staff there can tell whether it fits. The card leads with the name the family gave ("May be: Daniel Reyes") so staff can check it with the child. Confirm saves that name on the record and alerts the family's shelter. Dismiss saves nothing and tells nobody.
-
-![Possible match to confirm](docs/screenshots/possible-match-to-confirm.png)
-
-**Search** starts with the microphone and the new-search form.
-
-![Search](docs/screenshots/search.png)
-
-**Register with voice.** Hold the big microphone and speak in any language. Green fields were heard clearly, yellow ones need a check, and the transcript is shown only while you review.
-
 ![Register with voice](docs/screenshots/register-voice.png)
+![Search results](docs/screenshots/results.png)
+![Our searches](docs/screenshots/our-searches.png)
+![Looking for people here](docs/screenshots/incoming.png)
 
-**While recording** the button pulses softly and a live waveform follows the voice.
-
-![Recording](docs/screenshots/mic-recording.png)
-
-**Search results** show a score and plain reasons, never a name or a shelter.
-
-![Search results](docs/screenshots/search-results.png)
-
-The photos in these screenshots are placeholder silhouettes that match the sex of the person looking (a female, a male and a neutral one are in `server/placeholders/`). They are not real people. All names are demo data.
-
-[TODO: add team names, DALI submission details and a demo video link, if any.]
+---
 
 ## The full picture
 
-### What was built
+### The problem as I see it
 
-- Register people and search for them, with a form and with voice input.
-- Matching on name, last known place, age, distinctive marks, height and hair, with plain-language reasons.
-- Reciprocal search: only when both searches describe each other at 85% or more.
-- A consent flow for contact requests: photo, a short message, accept or decline.
-- "Our searches": one card per search, with its status, best score, sent request and reunion in one place. "Looking for people here": everything others started about people registered at this shelter, and only this shelter sees it: contact requests (staff decides for minors and people who cannot decide alone) and possible matches to confirm.
-- Automatic alerts: a new match highlights the card of its search. Counts in the sidebar refresh every 15 seconds.
+Searching a database is the easy part. The hard parts are:
 
-### What is simulated on purpose
+1. **Getting people into the system.** At 2 a.m. a volunteer has a line of worried families, no IDs, half the people have no phone, and some records are on paper. If registering someone takes five minutes, the data never gets in.
+2. **Connecting people without putting anyone in danger.** Some people do not want to be found by a specific person. A system that tells anyone where someone is would be dangerous for a person escaping an abusive partner.
 
-- **Accounts.** There is no login and no password. The sidebar lets anyone pick a shelter. This is a placeholder for real accounts.
-- **Email and SMS.** "Sending" saves a notification row, prints it to the server console and shows "Email sent to ..." in the UI. No provider is connected.
+So I built the core loop around those two things: fast intake by voice, and matching with consent before anything is revealed.
 
-### What was not built, and how it would work
+### What I built
 
-- **Scanning paper registers.** Some shelters keep paper lists. A volunteer would photograph a page, a vision model would read each row into the same person fields, and a volunteer would confirm the rows before they are saved. The same "doubtful fields in yellow" review as voice would apply.
-- **Witness sightings.** People who saw someone ("an old woman in a wheelchair boarded the blue bus") could submit a sighting. It would be stored with a place and a time, matched like a last known place, and never shown to searchers directly.
-- **Agency integration.** Transport companies, school districts and care-home operators could send their passenger or resident lists. The system would use them as extra evidence when matching by last known place, for example a bus that left a school.
-- **SMS and a phone line.** Families without a phone could call a number, speak, and get a reference code. The voice pipeline already turns speech into fields, so a call would feed the same search. Notifications would go out as SMS.
-- **Transport for reunification.** After an accepted contact, the two shelters could arrange a ride or a meeting point.
-- **Status changes (transferred, left).** Out of scope for this prototype. A registered person is simply listed at the shelter where they were registered, and nobody can mark them as transferred or left. How it would work: each person gets a status (present, transferred, left). Marking someone as transferred records the destination shelter, and it could be set automatically when an agency's list already names them. The person then appears in the destination shelter's list, and their open searches and alerts follow them there. A person who has left stays in the history but is no longer offered as a match. Every change would go into an audit log. Consent would carry on across a move: a pending contact request would be re-routed to the shelter where the person now is, and nothing about the new shelter would be shown until they accept.
-- **Working offline.** Shelters lose connectivity. A local-first version could keep registrations on the laptop and sync when the network returns. This app needs a connection.
+- **Register a person** who is at this shelter, by voice or by form.
+- **Search for someone** on behalf of a relative who is at this shelter.
+- **Matching** across all shelters, with a similarity score and plain-language reasons ("Name similar", "Same last known place", "Distinctive marks match: glasses").
+- **Searches that stay open.** When someone new is registered anywhere and matches an open search, the searcher's shelter is alerted. This covers the spouse who was rescued two days later.
+- **Contact requests with a photo.** The searcher's photo and a short message go to the found person's shelter. The found person sees who is looking for them and decides.
+- **Decisions stay where the person is.** Requests for minors and people who can't decide alone are decided by staff at their shelter, who can see them in person. Matches with no name are confirmed by that same staff before anyone is alerted.
+
+### How the app is organized
+
+The app is organized by direction:
+
+- **Our searches:** people at this shelter looking for someone. One card per search with its status: no matches yet, possible match, request sent, reunited.
+- **Looking for people here:** people from outside looking for someone at this shelter. Incoming requests, and matches staff need to confirm.
+- **People here:** everyone registered at this shelter.
+
+### What I did not build, and how it would work
+
+- **Paper records.** An AI could scan the paper records and translate the raw data into valuable information ready to insert into the database.
+- **Status changes.** People leave shelters or get transferred. In production each registration would have a status (here, transferred to X, left) so a reunion never sends a family to the wrong place.
+- **Real notifications.** Email is simulated in the UI. In production it would also send SMS to people who still have a phone.
+- **Authentication and roles.** Real volunteer accounts per shelter, and a coordinator role for sensitive decisions.
+- **Integrations** with the agencies that moved people (schools, nursing homes, rescue teams) so their lists come in directly.
+
+### Where my piece fits
+
+Reunite is the part that runs inside each shelter: intake, search, matching and consent. Everything above either feeds data into it (agency lists, paper records) or carries its result out (notifications, transport to reunite).
+
+---
 
 ## Design
 
 ### Users
 
-- **Shelter volunteer** is the main user, on a shelter laptop. They are not technical and they are overloaded.
-- **Family member searching** does not use the app. They talk to the volunteer at the desk.
-- **Person being sought** does not use the app either. The volunteer shows them the request and they decide.
+- **Shelter volunteer (main user).** Not technical, tired, using a shared laptop. Needs to register someone in under two minutes and understand every screen at a glance.
+- **Family member searching.** Does not use the app. Talks to the volunteer at the desk. Might have no phone and no ID.
+- **Person being searched for.** Does not use the app either. When a request arrives, the volunteer at their shelter shows them the photo and they decide.
 
-The test for each screen was: can an exhausted volunteer with a queue in front of them understand it in 3 seconds? Each screen has one large main action, and secondary actions are small and quiet. The longer reasoning is in `DESIGN.md`.
+### Why voice
 
-### Why this part
+Typing a description while someone is crying in front of you is slow. Saying "she's around 80, uses a walker, was at Sunrise Care Home" is fast. The volunteer holds the button and talks (or the family member talks, in their own language), and the AI fills the form. The volunteer always reviews before saving.
 
-[TODO: write your own reasons for choosing this problem and this slice of it. Suggested angle: finding people is partly a data problem, but the hard part is consent and safety, which is why the design is built around who is allowed to see what.]
+- Fields the AI was sure about get a light border. Uncertain ones turn yellow with "Please check". Names are often mis-transcribed, so they get flagged.
+- The AI never fills in something that was not said.
+- Any language works. Descriptions are stored in English, names are kept as spoken.
+- Shelters are noisy, so recording is push-to-talk with browser noise suppression, and the form always works without voice.
 
-### Edge cases the design handles
+### Privacy rules
 
-- **No phone.** The family member is registered at the shelter as a searcher in the same step as the search. Nothing is needed from their device. Email is optional.
-- **No ID.** Matching does not depend on documents. It uses description and last known place.
-- **Aliases and fear of giving a real name.** A name can be an alias or "unknown", with a checkbox "This may not be their real name". No immigration or legal status field exists anywhere, and the voice prompt tells the AI never to record it.
-- **A shelter deciding its own request.** A shelter can never accept or decline a request it sent, and the API refuses it too. It only sees that request in "Our searches" as "Request sent. Pending confirmation." If the person asked about is at the same shelter, the request shows in both places, as "Elena Delgado (here) is looking for Rosa Delgado (also here)", and is decided there.
-- **Minors.** Under 18 is flagged automatically. Their contact requests go to the shelter where they are, labelled "Staff decides: this person can't decide alone", and the volunteer there decides for them.
-- **People who cannot decide (for example dementia).** A "needs assistance" flag works the same way: the request goes to their shelter and staff decides.
-- **Matches without a name.** A strong match where a name is missing (a child who cannot say his name) is not alerted automatically. The shelter where the registered person is sees it as a "Possible match to confirm" with Confirm and Dismiss, because only staff there can tell whether it fits. The card shows the name the family gave ("May be: Leo Martinez") so staff can check it with the person, and Confirm saves that name on the person's record. It never shows who is searching or where. No other shelter sees it.
-- **Declines that cannot be told apart.** After "Decline", the search card still says "Request sent. Pending confirmation.", exactly as if nobody had answered. Later requests from the same searcher to the same person, even from a new search, are dropped silently and also look pending.
-- **Noise.** Voice recording asks the browser for noise suppression and echo cancellation. The form is always there as a backup.
-- **Badly transcribed names.** The AI marks uncertain values as low confidence, and they turn yellow with "Please check". The volunteer can fix any field by typing, and the transcript is shown during review.
-- **Duplicates.** Places autocomplete from existing places so there are not ten spellings of one school. Registering the same person twice is not detected (see limitations).
-- **Someone who does not want to be found.** Search results never show the candidate's name or shelter, and a decline is final from the searcher's point of view.
+- **Nobody sees where anyone is** until that person accepts. Search results show a score, sex, an age range and the reasons for the match. Never a name or a shelter.
+- **A decline looks exactly like no answer.** The searcher only ever sees "Pending confirmation". If they saw "declined", they would know the person is alive and in a shelter.
+- **No retries after a decline.** Any later request from the same searcher to the same person is silently dropped, even from a new search.
+- **The shelter that sends a request can never decide it.** Only the shelter where the person is can accept, decline or see the photo.
+- **Aliases are allowed.** There is no ID field and no immigration status field.
+- **No audio or transcripts are stored.** Photos are deleted once the request is decided.
 
-## Privacy
+### Edge cases
 
-- **No audio is stored.** The recording goes to the server in memory, to the transcription service (OpenAI), and is discarded. Nothing is written to disk.
-- **Transcripts are not stored or logged.** The text is shown to the volunteer during review only.
-- **Voice input sends data to outside providers.** The audio goes to OpenAI for transcription. The transcript text (never the audio) goes to the extraction provider, DeepSeek, which processes data outside the United States. Use voice input only with data you are allowed to send there. Without the two API keys, no data leaves the server.
-- **Photos are deleted** as soon as a contact request is accepted or declined. While they exist they are never served as static files. Only a shelter that may decide the request can fetch them, through a checked endpoint. The sending shelter cannot.
-- **Location only after accepting.** Search results show sex, an age range and the reasons for the match. The name and shelter appear only after the other person accepts.
-- **No immigration status** field or question exists.
-- **Access checks on every route.** A test calls every API route with no session and with a session, and checks the exact status code. A new route that is not in that test fails the test suite.
-- **Responses are never cached,** and in production the session cookie is `Secure`, `HttpOnly` and `SameSite=Lax`.
+| Situation | How the design handles it |
+|---|---|
+| No phone | The shelter is the contact point. Alerts go to the shelter. Email is optional. |
+| No ID | Identity comes from descriptions, the photo, and the found person's own decision. |
+| Afraid to give a real name | Alias allowed, marked "may not be their real name". No immigration fields. |
+| Doesn't want to be found by someone | The photo shows who is asking. Decline is invisible.|
+| Abusive partner searching | Results never show location or name. Contact only happens after the victim accepts. |
+| Child separated at school | Staff at the child's shelter decide, never the child alone. |
+| Elderly parent with dementia | "Needs assistance" flag. Staff at their shelter decide. |
+| Spouse rescued days later | Searches stay open and are re-checked against every new registration. |
+| Misspelled names, two surnames in any order | Token-based fuzzy matching on names, accents removed. |
+| Same name, different person (father and son) | A big age gap rules the match out. A name alone can't trigger an alert. |
+| Two people searching for each other | Reciprocal match. If both directions score 85% or more no photo is needed. |
+| Noisy shelter | Push-to-talk, noise suppression, review step. |
+| Similar-looking strangers | Matches are always confirmed by a person. Accepting one request never closes other relatives' searches. |
+
+---
 
 ## Technical choices
 
-- **Backend:** Node.js with Express, plain JavaScript. **Database:** SQLite through `better-sqlite3`, one file, one `schema.sql`.
-- **Frontend:** React with Vite and React Router, one CSS file with variables. No TypeScript, no UI library, no state manager. Icons from `lucide-react`. The fonts (Figtree for the interface, Fraunces for the logo) are self-hosted through npm, so no visitor's browser contacts a third party.
-- **Matching:** one readable file, `server/matching.js`, with pure functions: Jaro-Winkler on name tokens, last known place, age, marks keywords, height and hair. Missing data is never penalised, and a lone matching field cannot look like a certain match.
-- **Voice:** the browser records with `MediaRecorder`; OpenAI transcribes; DeepSeek extracts the fields through a forced function call with a JSON schema (its thinking mode is switched off, because DeepSeek rejects a forced tool choice in thinking mode). The server validates every value against the form's allowed values, so a wrong answer from the model never reaches the form unchecked.
-- **Sessions:** `express-session` with the default in-memory store. Simple, but sessions are lost on restart and only one process can run.
-- **Production:** one Express process serves the API and the React build, managed by PM2, behind nginx with a Let's Encrypt certificate.
+- **React (Vite) and Node/Express**, served from one process on my own VPS behind nginx with HTTPS.
+- **SQLite** with `better-sqlite3`. One file, no database server, enough for a demo.
+- **Matching in plain JavaScript** (`server/matching.js`), small pure functions with tests. Weights: name 35, last known place 25, age 15, distinctive marks 15, height and hair 10. If sex is known on both sides and differs, the score is 0. Missing fields don't penalize, but a match based on very few fields is scaled down so a name alone can't trigger an alert. Name tokens use Jaro-Winkler, and tokens below 0.8 count as zero so unrelated names don't get a baseline score.
+- **Alerts** need 85% or more and a similar name. Matches with no name go to staff at the person's shelter first.
+- **Voice:** OpenAI for transcription, DeepSeek for turning the transcript into form fields with a forced function call. Every value is validated on the server against the allowed options.
+- **Polling every 15 seconds** instead of websockets. Simpler, and alerts don't need to be instant.
+- **Tests** for matching, the consent rules, the voice validator, and a route test that calls every endpoint with and without a session.
 
-### Tradeoff 1: privacy against speed
+### The biggest tradeoff: privacy over speed
 
-Asking for consent delays reunions that would have been harmless. A mother could see where her child is right away; instead she waits for a volunteer to show a request. We accept that delay on purpose, because revealing the location of someone who is hiding from an abuser cannot be undone, and a slower reunion can. Having staff at the person's own shelter decide for minors and people who cannot decide alone, and confirm matches where a name is missing, adds a further delay for the same reason. The one shortcut is a reciprocal match: both searches describe each other at 85% or more, so no photo is needed, because both people have already asked for each other.
+The consent step slows down reunions that would be harmless. A mother who finds her son still has to wait for a volunteer at his shelter to show him her photo. I accepted that because the opposite mistake, revealing where someone is to the wrong person, can't be undone.
 
-### Tradeoff 2: simple, but not built for 400,000 people
+### Other tradeoffs and limitations
 
-SQLite and matching in JavaScript are easy to read and run anywhere, but they would not scale to a real evacuation. Every new person is compared with every open search, narrowed only by a SQL filter on sex and age. At real scale this needs proper indexes, blocking keys (for example a phonetic key for names) before scoring, a job queue instead of matching inside the request, a server database, and shared session storage.
+- **No authentication in the demo.** Anyone can act as any shelter, so the privacy rules protect against honest mistakes, not attackers.
+- **SQLite and JavaScript matching won't scale to 400,000 people** without better indexing and pre-filtering.
+- **Someone could re-register under a different name**. Without IDs this can't be fully prevented.
+- **DeepSeek processes the transcript outside the United States.** For a real deployment I would use a provider with a clear data agreement.
+- **Locations can go stale** because status changes (transferred, left) are not built.
 
-## Limitations
+---
 
-- A person who was declined could register again under a different name at another shelter and look like a new searcher. The "dropped after decline" rule works per searcher and per found person, so without identity documents we cannot fully prevent this.
-- Registering the same person twice at different shelters is not detected.
-- There is no authentication. Anyone can act as any shelter, so the privacy rules protect against honest mistakes, not against someone who deliberately switches shelter. Real use needs real accounts.
-- There are no status changes, so a person who moves on stays listed at the shelter where they were registered. An accepted reunion could send a family to a shelter the person has already left.
-- Voice input has so far been tested only against mocked OpenAI and DeepSeek services. [TODO: add real-speech test results.]
+## Try it
 
-## How to run locally
+1. Pick a shelter and open **Our searches**. Find the one where Nora Whitaker is looking for Tom Whitaker (male, 58, last seen at Pelican Street). This is the spouse who stayed behind.
+2. Switch to a different shelter and **register** Tom Whittaker (male, 58, last seen at Pelican Street). The misspelling is on purpose.
+3. Switch back to Nora's shelter. Within 15 seconds her card in **Our searches** shows a possible match.
+4. Open the results and send a contact request with a photo.
+5. Switch to Tom's shelter and accept it in **Looking for people here**.
+6. Switch back. Nora's card now shows where Tom is.
 
-You need Node.js (developed and tested on version 24).
+Try registering him with age 35 instead. He won't match, because he could be Tom's son.
 
-```bash
-git clone <this repository>
-cd reunite
+Use **Reset demo data** in the sidebar to start over.
 
-# Install the dependencies, then create .env with a random session secret
-npm install --prefix server
-npm install --prefix client
-npm run setup --prefix server
-# Optional: put your OPENAI_API_KEY and DEEPSEEK_API_KEY in .env to turn on voice input.
-# Without them the microphone says "Voice input is not configured" and the forms still work.
+---
 
-# Option A: production-like, one process on http://localhost:3100
-npm run build --prefix client
-npm start --prefix server
+## How I worked with AI
 
-# Option B: development with hot reload on http://localhost:5173
-npm start --prefix server            # in one terminal
-npm run dev --prefix client          # in another
-```
+I used Claude Code on my VPS to help me build and deploy the app. This README was drafted with Claude and edited by me.
 
-The first start creates `server/data/reunite.db` and fills it with demo data. To start over, press "Reset demo data" at the bottom of the sidebar, or delete the file.
+- **Decisions I made.** Voice as the main input, a photo with every contact request, no case codes or opt-out flags, and cutting login, roles and group transfers when the app got too complex.
+- **Reviewing every phase.** I pushed back when I disagreed. The reciprocal threshold was too low for a flow that skips the photo, and the block after a decline could be bypassed with a new search.
+- **Testing it myself.** I found that the sender of a request could decide it, that one inbox mixed incoming and outgoing, and that requests for minors were visible to every shelter. Each led to a fix or a redesign.
 
-Run the tests with `npm test --prefix server`.
+---
 
-### Environment variables
+## Contact
 
-| Name | Meaning |
-|---|---|
-| `PORT` | Port to listen on (default 3100). |
-| `SESSION_SECRET` | Generated by `npm run setup`. |
-| `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` | Field extraction from speech (default model `deepseek-flash`). |
-| `OPENAI_API_KEY`, `OPENAI_TRANSCRIBE_MODEL` | Speech transcription. |
-
-### Deployment notes
-
-The live demo runs as a single PM2 process (`reunite`, defined in `ecosystem.config.cjs`) on `127.0.0.1:3100`, behind nginx with a Let's Encrypt certificate. Keep it to one instance, because sessions live in memory. After changing `.env`, restart the process so the new values are read.
+bruno.rodriguez.trejo.30@dartmouth.edu
