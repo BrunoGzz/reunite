@@ -15,8 +15,8 @@ test('keeps valid values and their confidence', () => {
 
 test('drops nulls, empty text and values outside the allowed lists', () => {
   const { fields } = normalizeFields({
-    name: f(null), marks: f('   '), sex: f('unknown'), height: f('giant'), age: f(150), arrival_method: f('teleport'),
-    last_seen_day: f('yesterday'), hair_color: f('blond'),
+    name: f(null), marks: f('   '), sex: f('unknown'), height: f('giant'), age: f(150),
+    hair_color: f('blond'),
   })
   assert.deepEqual(Object.keys(fields), ['hair_color'])
 })

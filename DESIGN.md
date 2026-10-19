@@ -29,7 +29,7 @@ The test for every screen: can an exhausted volunteer, with a queue in front of 
 
 ## 3. Core ideas
 
-1. **Places, not just names.** People are often found by where they were, not by what they are called. Besides describing the person, we record the last place and time they were known to be somewhere (a school, a care home, a street). Matching uses that place even when there is no name, so a child who cannot say his name can still be connected to the school his mother is asking about.
+1. **Places, not just names.** People are often found by where they were, not by what they are called. Besides describing the person, we record the last place they were known to be (a school, a care home, a street). Matching uses that place even when there is no name, so a child who cannot say his name can still be connected to the school his mother is asking about.
 2. **Reciprocal search.** If A looks for B and B looks for A, that is the strongest signal. It is flagged as reciprocal, and when both descriptions are strong (85% or more each way) the contact request needs no photo.
 3. **Voice entry.** The main input for registering and searching is a microphone button. The volunteer (or the person, in their own language) speaks, AI fills the fields, the volunteer reviews before saving. The manual form is always available.
 
@@ -94,8 +94,6 @@ Fields (people):
 - Distinctive marks (free text: tattoos, scars, glasses, wheelchair)
 - Languages spoken
 - Last known place before evacuating (free text with autocomplete from places already in the database, so there are no ten versions of the same school)
-- Approximate time: day and part of day (morning, afternoon, evening, night)
-- How they arrived: bus, boat, own car, ambulance, agency transfer, other
 - Flag "Needs assistance to decide" (for example dementia)
 - Current shelter: taken from the session
 
@@ -189,7 +187,7 @@ Rules:
 - If sex is known on both sides and differs, the score is 0.
 - If a field is missing on either side, that component is skipped and the weights are shared among the remaining ones. Missing data is never penalised.
 - SQL pre-filters by sex and age range when present, so we do not compare against everyone.
-- Removing "who moved them", "travelling with", the status field and group transfers did not change the weights: only the transfer bonus on the place component is gone. All registered people are candidates. "How they arrived" and the day and time last seen are kept as description only; they are not scored.
+- All registered people are candidates.
 
 ### 5.2 Reciprocal
 
@@ -247,9 +245,6 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - marks (text)
 - languages (text)
 - last_place (text)
-- last_seen_day (date, nullable)
-- last_seen_part (morning, afternoon, evening, night, nullable)
-- arrival_method (bus, boat, own car, ambulance, agency transfer, other)
 - is_minor (0/1, set automatically from age)
 - needs_assistance (0/1)
 - created_at
@@ -258,7 +253,7 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - id
 - shelter_id (the shelter where the search was created)
 - searcher_person_id (the person looking, a row in people)
-- target fields, same as the description fields of people: name, sex, age, height, hair_color, marks, languages, last_place, last_seen_day, last_seen_part, arrival_method
+- target fields, same as the description fields of people: name, sex, age, height, hair_color, marks, languages, last_place
 - email (nullable)
 - email_opt_in (0/1)
 - status (open, closed)

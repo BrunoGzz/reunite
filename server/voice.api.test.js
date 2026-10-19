@@ -12,7 +12,7 @@ const toolCall = (input, name = 'fill_form') => ({
   choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function', function: { name, arguments: typeof input === 'string' ? input : JSON.stringify(input) } }] } }],
 })
 const f = (value, confidence = 'high') => ({ value, confidence })
-const NULLS = Object.fromEntries(['name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place', 'last_seen_day', 'last_seen_part', 'arrival_method', 'needs_assistance'].map((k) => [k, f(null)]))
+const NULLS = Object.fromEntries(['name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place', 'needs_assistance'].map((k) => [k, f(null)]))
 const goodInput = () => ({ ...NULLS, name: f('Itziar Etxeberria', 'low'), sex: f('female'), age: f(52), marks: f('scar on hand'), language: 'Spanish' })
 const reset = () => {
   seen.transcribe = []
@@ -144,7 +144,7 @@ test('target mode does not offer needs_assistance and says the person is being s
 
 test('values outside the form are dropped even if the model returns them', async () => {
   reset()
-  deepseekReply = () => ({ status: 200, body: toolCall({ ...goodInput(), height: f('giant'), sex: f('unknown'), age: f(400), last_seen_day: f('yesterday'), needs_assistance: f(true) }) })
+  deepseekReply = () => ({ status: 200, body: toolCall({ ...goodInput(), height: f('giant'), sex: f('unknown'), age: f(400), needs_assistance: f(true) }) })
   const { body } = await speak({ mode: 'target' })
   // Only the valid name and marks survive. In target mode needs_assistance is not accepted either.
   assert.deepEqual(Object.keys(body.fields).sort(), ['marks', 'name'])

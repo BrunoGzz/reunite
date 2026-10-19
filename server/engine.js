@@ -12,7 +12,6 @@ const RECIPROCAL_MIN = 70 // how well the other search must describe the searche
 
 const DESCRIPTION_FIELDS = [
   'name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place',
-  'last_seen_day', 'last_seen_part', 'arrival_method',
 ]
 const SEXES = ['male', 'female', 'unknown']
 const HEIGHTS = ['short', 'medium', 'tall', 'unknown']

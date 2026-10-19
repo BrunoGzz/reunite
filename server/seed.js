@@ -5,15 +5,12 @@ import { fileURLToPath } from 'node:url'
 import db, { now, photoDir } from './db.js'
 import { addPerson, addSearch, runSearch, matchNewPerson, createRequest } from './engine.js'
 
-const DAY = '2026-09-10'
-
 // Registered live by the "Register late arrival" button, so the automatic alert can be seen happening.
 export const LATE_ARRIVAL = {
   shelter: "St. Mary's Community Center",
   person: {
     name: 'Tom Whitaker', sex: 'male', age: 58, height: 'tall', hair_color: 'gray',
     marks: 'gray beard, bandaged left hand', languages: 'English', last_place: 'Pelican Street',
-    last_seen_day: DAY, last_seen_part: 'evening', arrival_method: 'boat',
   },
 }
 
@@ -24,7 +21,6 @@ const SHELTERS = [
 ]
 
 const PLACES = ['Oak Ridge Apartments', 'Main Street Church', 'Harbor Mall', 'Pelican Street', 'Cedar Park Homes', 'Westside Clinic']
-const ARRIVALS = ['bus', 'own car', 'boat', 'ambulance', 'other']
 const HEIGHTS = ['short', 'medium', 'tall']
 const HAIR = ['black', 'brown', 'blond', 'gray', 'red']
 const MARKS = [null, 'glasses', null, 'tattoo on left arm', null, 'scar on chin', null]
@@ -44,9 +40,6 @@ function addFillerPeople(shelterIds) {
       marks: MARKS[i % MARKS.length],
       languages: 'English',
       last_place: PLACES[i % PLACES.length],
-      last_seen_day: DAY,
-      last_seen_part: ['morning', 'afternoon', 'evening'][i % 3],
-      arrival_method: ARRIVALS[i % ARRIVALS.length],
     }, shelterIds[i % 3])
   }
 }
@@ -61,44 +54,44 @@ export function seed() {
   // Case 1: a child from a school. He gave no name, so only the place and his age connect him to his mother.
   const carla = addPerson({ name: 'Carla Reyes', sex: 'female', age: 36, last_place: 'Oak Ridge Apartments', languages: 'Spanish, English' }, stMarys)
   const motherSearch = addSearch({ shelterId: stMarys, searcherPersonId: carla.id, email: 'carla.reyes@example.com', emailOptIn: true,
-    target: { name: 'Daniel Reyes', sex: 'male', age: 8, last_place: 'Lincoln Elementary', last_seen_day: DAY, last_seen_part: 'afternoon', marks: 'red backpack' } })
+    target: { name: 'Daniel Reyes', sex: 'male', age: 8, last_place: 'Lincoln Elementary', marks: 'red backpack' } })
 
   // Case 2: moved out of a care home by another agency, and needs assistance.
   const elena = addPerson({ name: 'Elena Delgado', sex: 'female', age: 52, last_place: 'Cedar Park Homes' }, riverside)
   const daughterSearch = addSearch({ shelterId: riverside, searcherPersonId: elena.id,
-    target: { name: 'Rosa Delgado', sex: 'female', age: 81, last_place: 'Sunrise Care Home', last_seen_day: DAY, marks: 'wheelchair, hearing aid' } })
+    target: { name: 'Rosa Delgado', sex: 'female', age: 81, last_place: 'Sunrise Care Home', marks: 'wheelchair, hearing aid' } })
 
   // Case 3: a couple looking for each other.
-  const marcus = addPerson({ name: 'Marcus Hill', sex: 'male', age: 44, height: 'tall', last_place: 'Westside Clinic', last_seen_day: DAY }, riverside)
-  const tanya = addPerson({ name: 'Tanya Hill', sex: 'female', age: 41, height: 'medium', last_place: 'Westside Clinic', last_seen_day: DAY }, stMarys)
+  const marcus = addPerson({ name: 'Marcus Hill', sex: 'male', age: 44, height: 'tall', last_place: 'Westside Clinic' }, riverside)
+  const tanya = addPerson({ name: 'Tanya Hill', sex: 'female', age: 41, height: 'medium', last_place: 'Westside Clinic' }, stMarys)
 
   // Case 4: a person registered under an alias.
   const sister = addPerson({ name: 'Nadia Ferrer', sex: 'female', age: 38, last_place: 'Main Street Church' }, riverside)
   const sisterSearch = addSearch({ shelterId: riverside, searcherPersonId: sister.id,
-    target: { name: 'Tomas Ferrer', sex: 'male', age: 45, marks: 'tattoo of an anchor on right arm', last_place: 'Main Street Church', last_seen_day: DAY } })
+    target: { name: 'Tomas Ferrer', sex: 'male', age: 45, marks: 'tattoo of an anchor on right arm', last_place: 'Main Street Church' } })
 
   // Case 5: someone who will decline contact.
   const victor = addPerson({ name: 'Victor Santos', sex: 'male', age: 40, last_place: 'Harbor Mall' }, riverside)
   const victorSearch = addSearch({ shelterId: riverside, searcherPersonId: victor.id,
-    target: { name: 'Maria Santos', sex: 'female', age: 36, last_place: 'Harbor Mall', last_seen_day: DAY } })
+    target: { name: 'Maria Santos', sex: 'female', age: 36, last_place: 'Harbor Mall' } })
 
   // Case 6: the husband rescued later. Only the wife's open search exists.
   const nora = addPerson({ name: 'Nora Whitaker', sex: 'female', age: 55, last_place: 'Pelican Street' }, harbor)
   const wifeSearch = addSearch({ shelterId: harbor, searcherPersonId: nora.id,
-    target: { name: 'Tom Whitaker', sex: 'male', age: 58, last_place: 'Pelican Street', last_seen_day: DAY, marks: 'gray beard' } })
+    target: { name: 'Tom Whitaker', sex: 'male', age: 58, last_place: 'Pelican Street', marks: 'gray beard' } })
 
   // Run the first searches while nobody has been registered yet, then register the people sought.
   for (const s of [motherSearch, daughterSearch, sisterSearch, victorSearch, wifeSearch]) runSearch(s)
 
   const found = (shelterId, data) => matchNewPerson(addPerson(data, shelterId))
-  found(riverside, { sex: 'male', age: 8, height: 'short', hair_color: 'brown', marks: 'red backpack', last_place: 'Lincoln Elementary', last_seen_day: DAY, last_seen_part: 'afternoon', arrival_method: 'bus' })
-  found(harbor, { name: 'Rosa Delgado', sex: 'female', age: 81, hair_color: 'white', marks: 'wheelchair, hearing aid', languages: 'Spanish', last_place: 'Sunrise Care Home', last_seen_day: DAY, last_seen_part: 'morning', arrival_method: 'agency transfer', needs_assistance: true })
-  found(stMarys, { name: 'Mr. Blue', name_is_alias: true, sex: 'male', age: 46, marks: 'tattoo of an anchor on right arm', last_place: 'Main Street Church', last_seen_day: DAY, arrival_method: 'own car' })
-  found(harbor, { name: 'Maria Santos', sex: 'female', age: 36, hair_color: 'black', last_place: 'Harbor Mall', last_seen_day: DAY, arrival_method: 'bus' })
+  found(riverside, { sex: 'male', age: 8, height: 'short', hair_color: 'brown', marks: 'red backpack', last_place: 'Lincoln Elementary' })
+  found(harbor, { name: 'Rosa Delgado', sex: 'female', age: 81, hair_color: 'white', marks: 'wheelchair, hearing aid', languages: 'Spanish', last_place: 'Sunrise Care Home', needs_assistance: true })
+  found(stMarys, { name: 'Mr. Blue', name_is_alias: true, sex: 'male', age: 46, marks: 'tattoo of an anchor on right arm', last_place: 'Main Street Church' })
+  found(harbor, { name: 'Maria Santos', sex: 'female', age: 36, hair_color: 'black', last_place: 'Harbor Mall' })
 
   // The couple: the second search finds the first, so both shelters get a reciprocal alert.
-  runSearch(addSearch({ shelterId: riverside, searcherPersonId: marcus.id, target: { name: 'Tanya Hill', sex: 'female', age: 41, last_place: 'Westside Clinic', last_seen_day: DAY } }))
-  runSearch(addSearch({ shelterId: stMarys, searcherPersonId: tanya.id, target: { name: 'Marcus Hill', sex: 'male', age: 44, last_place: 'Westside Clinic', last_seen_day: DAY } }))
+  runSearch(addSearch({ shelterId: riverside, searcherPersonId: marcus.id, target: { name: 'Tanya Hill', sex: 'female', age: 41, last_place: 'Westside Clinic' } }))
+  runSearch(addSearch({ shelterId: stMarys, searcherPersonId: tanya.id, target: { name: 'Marcus Hill', sex: 'male', age: 44, last_place: 'Westside Clinic' } }))
 
   // The sought person at Harbor View has a pending request waiting, ready to be declined live.
   const mariaMatch = db.prepare('SELECT m.* FROM matches m WHERE m.search_id = ? ORDER BY m.score DESC').get(victorSearch.id)

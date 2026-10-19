@@ -4,16 +4,14 @@ import { get } from '../api.js'
 export function emptyPerson() {
   return {
     name: '', name_is_alias: false, sex: 'unknown', age: '', height: 'unknown', hair_color: '',
-    marks: '', languages: '', last_place: '', last_seen_day: '', last_seen_part: '',
-    arrival_method: '', needs_assistance: false,
+    marks: '', languages: '', last_place: '', needs_assistance: false,
   }
 }
 
 const HAIR = ['black', 'brown', 'blond', 'red', 'gray', 'white', 'other']
-const ARRIVALS = ['bus', 'boat', 'own car', 'ambulance', 'agency transfer', 'other']
 
 // mode "person": everything. "target": a person being searched for. "minimal": the basics only.
-const DETAIL_FIELDS = ['height', 'hair_color', 'languages', 'last_seen_day', 'last_seen_part', 'arrival_method']
+const DETAIL_FIELDS = ['height', 'hair_color', 'languages']
 
 export default function PersonForm({ values, onChange, doubtful = [], heard = [], mode = 'person' }) {
   const [moreOpen, setMoreOpen] = useState(false)
@@ -96,29 +94,6 @@ export default function PersonForm({ values, onChange, doubtful = [], heard = []
             <label className={'field grow' + flag('languages')}>Languages spoken
               <input value={values.languages} onChange={set('languages')} />
               {hint('languages')}
-            </label>
-          </div>
-          <div className="row">
-            <label className={'field' + flag('last_seen_day')}>Day last seen
-              <input type="date" value={values.last_seen_day} onChange={set('last_seen_day')} />
-              {hint('last_seen_day')}
-            </label>
-            <label className={'field' + flag('last_seen_part')}>Time of day
-              <select value={values.last_seen_part} onChange={set('last_seen_part')}>
-                <option value="">Unknown</option>
-                <option value="morning">Morning</option>
-                <option value="afternoon">Afternoon</option>
-                <option value="evening">Evening</option>
-                <option value="night">Night</option>
-              </select>
-              {hint('last_seen_part')}
-            </label>
-            <label className={'field' + flag('arrival_method')}>How they got here
-              <select value={values.arrival_method} onChange={set('arrival_method')}>
-                <option value="">Unknown</option>
-                {ARRIVALS.map((a) => <option key={a} value={a}>{a}</option>)}
-              </select>
-              {hint('arrival_method')}
             </label>
           </div>
         </details>

@@ -19,7 +19,7 @@ Reunite is the tool a tired shelter volunteer would have open on a laptop at 2 a
 
 Three ideas make it different from a name search:
 
-1. **Places, not just names.** People are often found by where they were. Besides describing the person, we record the last place and time they were known to be somewhere (a school, a care home, a street). Matching uses that place even when there is no name, so a child who cannot say his name can still be connected to the school his mother is asking about.
+1. **Places, not just names.** People are often found by where they were. Besides describing the person, we record the last place they were known to be (a school, a care home, a street). Matching uses that place even when there is no name, so a child who cannot say his name can still be connected to the school his mother is asking about.
 2. **Reciprocal search.** If A searches for B and B searches for A, that is the strongest signal, and the flow gets shorter.
 3. **Voice entry.** Hold a microphone button and speak, in any language. The AI fills the form, marks what it is unsure of in yellow, and the volunteer reviews before saving.
 
