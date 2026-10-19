@@ -6,6 +6,7 @@ import VoiceButton from '../components/VoiceButton.jsx'
 import Spoken from '../components/Spoken.jsx'
 import { useVoiceForm } from '../components/useVoiceForm.js'
 import ResultList from '../components/ResultList.jsx'
+import OpenSearches from '../components/OpenSearches.jsx'
 
 export default function Search() {
   const { id } = useParams()
@@ -105,6 +106,8 @@ function NewSearch() {
 
       {error && <p className="error">{error}</p>}
       <button className="btn big" onClick={submit} disabled={busy}>Search</button>
+
+      <OpenSearches />
     </>
   )
 }

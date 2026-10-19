@@ -78,6 +78,7 @@ The photo in these screenshots is a neutral stand-in from a fake camera. All nam
 - Matching on name, route, age, distinctive marks, height and hair, with plain-language reasons.
 - Group transfers as traces (buses, boats, agency moves).
 - Reciprocal search.
+- A list of the shelter's open searches on the Search page, with the best current score and whether a request is pending, so a volunteer can reopen any search's results.
 - A consent flow for contact requests: photo, a short message, accept or decline.
 - A coordinator role: review queue, requests for minors and people who need assistance, group transfers.
 - Automatic alerts, shown in the sidebar and refreshed every 15 seconds.

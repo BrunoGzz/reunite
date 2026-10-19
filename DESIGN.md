@@ -112,6 +112,7 @@ There is no status field (present, transferred, left). Everyone registered is si
   - never the candidate's full name or shelter
 - The search stays saved as open. The page says so: "This search stays open. You will get an alert if someone new matches."
 - Empty state: "No possible matches yet. We will keep looking and alert you."
+- "Open searches" at the bottom of the page: a simple list of this shelter's open searches. Each row shows who is looking and who they are looking for ("Elena Delgado is looking for Rosa Delgado"), a short description (sex, age, last place), the best current score, and "Pending confirmation" if a contact request was sent. A request that was declined also reads "Pending confirmation", so a decline stays invisible here too. Clicking a row opens its results again. Empty state: "No open searches yet. Start one above with the microphone."
 
 ### 4.5 Contact request (modal from a result)
 
@@ -336,4 +337,4 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 - Last place is free text with autocomplete from existing values; there is no separate places table.
 - The searcher is stored as a normal row in `people`, so reciprocal detection is a simple lookup.
 - Match `state` is a single column instead of separate tables for review and alerts.
-- Alerts and pending requests live in the sidebar. Home no longer lists open searches, so an alert is the way back to a search's results.
+- Alerts and pending requests live in the sidebar. This shelter's open searches are listed at the bottom of the Search page, below the form, so Home stays at two buttons.

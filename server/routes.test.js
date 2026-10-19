@@ -9,6 +9,7 @@ process.env.DEEPSEEK_API_KEY = ''
 const { default: db } = await import('./db.js')
 const { createApp, routers } = await import('./app.js')
 const { seed } = await import('./seed.js')
+const engine = await import('./engine.js')
 seed()
 
 const server = createApp().listen(0)
@@ -81,6 +82,35 @@ test('notifications can only be marked read by their own shelter or the coordina
   assert.equal(await mark(forShelter2, await cookie('coordinator', 1)), 404) // coordinators do not own shelter alerts
   assert.equal(await mark(forCoordinator, await cookie('coordinator', 1)), 200)
   assert.equal(await mark(forShelter2, await cookie('volunteer', 2)), 200)
+})
+
+test('open searches list: own shelter only, best score, and a sent request always reads as pending', async () => {
+  const cookieFor = async (shelter) => (await startSession('volunteer', shelter)).headers.getSetCookie()[0].split(';')[0]
+  const list = async (cookie) => (await fetch(`${base}/api/searches`, { headers: { cookie } })).json()
+  const river = await cookieFor(1)
+
+  const searches = await list(river)
+  const rosa = searches.find((x) => x.name === 'Rosa Delgado')
+  assert.equal(rosa.searcher_name, 'Elena Delgado')
+  assert.ok(rosa.best_score >= 85 && rosa.match_count >= 1)
+  assert.equal(rosa.request_sent, false)
+  assert.ok(!searches.some((x) => x.name === 'Daniel Reyes')) // that one belongs to St. Mary's
+  assert.ok((await list(await cookieFor(2))).some((x) => x.name === 'Daniel Reyes'))
+
+  // The seed has a request waiting for Maria Santos. Declining it must not change what the searcher sees.
+  assert.equal(searches.find((x) => x.name === 'Maria Santos').request_sent, true)
+  db.prepare("UPDATE contact_requests SET status = 'declined'").run()
+  const afterDecline = await list(river)
+  assert.equal(afterDecline.find((x) => x.name === 'Maria Santos').request_sent, true)
+  assert.ok(!JSON.stringify(afterDecline).toLowerCase().includes('declin'))
+
+  // A search nobody matches has no best score.
+  const elena = db.prepare("SELECT id FROM people WHERE name = 'Elena Delgado'").get().id
+  engine.addSearch({ shelterId: 1, searcherPersonId: elena, target: { name: 'Zzyzx Qwerty', sex: 'male', age: 90 } })
+  const lonely = (await list(river)).find((x) => x.name === 'Zzyzx Qwerty')
+  assert.equal(lonely.best_score, null)
+  assert.equal(lonely.match_count, 0)
+  assert.equal(lonely.request_sent, false)
 })
 
 for (const row of ROWS) {

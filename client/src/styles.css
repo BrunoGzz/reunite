@@ -203,3 +203,12 @@ main > table { background: var(--card); border-radius: var(--radius); overflow: 
 
 .request .row { margin-top: 16px; }
 .request p { margin: 6px 0; }
+
+/* Open searches */
+.open-searches { margin-top: 56px; }
+.open-search { display: flex; align-items: center; gap: 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; margin: 12px 0; text-decoration: none; color: var(--text); box-shadow: var(--shadow-sm); transition: box-shadow 0.15s ease, transform 0.15s ease; }
+.open-search:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+.open-main { flex: 1; min-width: 0; }
+.open-title { font-weight: 700; font-size: 18px; }
+.open-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; white-space: nowrap; }
+.open-score strong { color: var(--accent); font-size: 20px; }

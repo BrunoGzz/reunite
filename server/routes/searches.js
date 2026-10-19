@@ -26,14 +26,18 @@ router.post('/searches', (req, res) => {
   res.json({ search, results: resultsFor(search.id) })
 })
 
+// This shelter's open searches, for the "Open searches" list. A request that was sent is always
+// reported as sent (pending), whether or not it was declined, so a decline stays invisible.
 router.get('/searches', (req, res) => {
   const rows = db.prepare(`
-    SELECT s.id, s.name, s.sex, s.age, s.created_at, p.name AS searcher_name,
-      (SELECT COUNT(*) FROM matches m WHERE m.search_id = s.id AND m.score >= ? AND m.state != 'rejected') AS match_count
+    SELECT s.id, s.name, s.sex, s.age, s.last_place, s.created_at, p.name AS searcher_name,
+      (SELECT COUNT(*) FROM matches m WHERE m.search_id = s.id AND m.score >= @min AND m.state != 'rejected') AS match_count,
+      (SELECT MAX(m.score) FROM matches m WHERE m.search_id = s.id AND m.score >= @min AND m.state != 'rejected') AS best_score,
+      EXISTS (SELECT 1 FROM contact_requests r JOIN matches m ON m.id = r.match_id WHERE m.search_id = s.id) AS request_sent
     FROM searches s JOIN people p ON p.id = s.searcher_person_id
-    WHERE s.shelter_id = ? AND s.status = 'open' ORDER BY s.created_at DESC
-  `).all(SHOW_MIN, req.session.shelterId)
-  res.json(rows)
+    WHERE s.shelter_id = @shelter AND s.status = 'open' ORDER BY s.created_at DESC, s.id DESC
+  `).all({ min: SHOW_MIN, shelter: req.session.shelterId })
+  res.json(rows.map((r) => ({ ...r, request_sent: !!r.request_sent })))
 })
 
 router.get('/searches/:id', (req, res) => {
