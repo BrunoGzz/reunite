@@ -41,7 +41,7 @@ export default function RequestCard({ request, onDecided, here = false }) {
         {!request.sender_here && <p>From: {request.searcher_name || 'a family member'}</p>}
         {request.message && <p>"{request.message}"</p>}
         {(request.is_minor || request.needs_assistance) ? (
-          <p>{request.is_minor ? <span className="tag">Minor</span> : null}{request.needs_assistance ? <span className="tag">Needs assistance</span> : null}</p>
+          <p className="staff-note">{request.is_minor ? <span className="tag">Minor</span> : null}{request.needs_assistance ? <span className="tag">Needs assistance</span> : null} Staff decides: this person can't decide alone</p>
         ) : null}
         {error && <p className="error">{error}</p>}
         {!confirming && (

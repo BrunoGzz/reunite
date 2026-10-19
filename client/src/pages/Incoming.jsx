@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { useOutletContext } from 'react-router-dom'
-import { get } from '../api.js'
+import { get, post } from '../api.js'
 import RequestCard from '../components/RequestCard.jsx'
 import { Reunion } from '../components/ResultList.jsx'
 
-// Families asking about people registered at this shelter. The person decides.
+// Everything other shelters started about people registered at this shelter, and that only this shelter sees:
+// requests to contact someone, and possible matches that need confirming.
 export default function Incoming() {
   const { refresh } = useOutletContext()
   const [data, setData] = useState(null)
-  const [decided, setDecided] = useState({}) // decided requests stay on screen, so the result can be read
+  const [decided, setDecided] = useState({}) // decided items stay on screen, so the result can be read
+  const [handled, setHandled] = useState({})
+
+  const load = () => get('/api/incoming').then(setData).catch(() => {})
 
   useEffect(() => {
-    const load = () => get('/api/incoming').then(setData).catch(() => {})
     load()
     const timer = setInterval(load, 15000)
     return () => clearInterval(timer)
@@ -19,17 +22,19 @@ export default function Incoming() {
 
   if (!data) return null
   const pending = [...data.pending, ...Object.values(decided).filter((d) => !data.pending.some((r) => r.id === d.id))]
+  const toConfirm = [...data.toConfirm, ...Object.values(handled).filter((h) => !data.toConfirm.some((m) => m.id === h.id))]
   const shown = new Set(pending.map((r) => r.id))
   const accepted = data.accepted.filter((r) => !shown.has(r.id))
 
   return (
     <>
       <h1>Looking for people here</h1>
-      <p className="subtitle">Families asking about people registered at this shelter. Show the request to the person: they decide.</p>
+      <p className="subtitle">Families asking about people registered at this shelter. Show a request to the person: they decide. For a child or someone who cannot decide alone, staff decides.</p>
 
-      {pending.length === 0 && accepted.length === 0 && <div className="empty">No one is looking for people here right now. When a family asks about someone registered at this shelter, it will appear on this page.</div>}
+      {pending.length === 0 && toConfirm.length === 0 && accepted.length === 0 && <div className="empty">No one is looking for people here right now. When a family asks about someone registered at this shelter, it will appear on this page.</div>}
 
       {pending.map((r) => <RequestCard key={r.id} here request={r} onDecided={() => { setDecided((d) => ({ ...d, [r.id]: r })); refresh() }} />)}
+      {toConfirm.map((m) => <ConfirmCard key={m.id} match={m} onDone={() => { setHandled((h) => ({ ...h, [m.id]: m })); load(); refresh() }} />)}
 
       {accepted.length > 0 && (
         <>
@@ -43,5 +48,43 @@ export default function Incoming() {
         </>
       )}
     </>
+  )
+}
+
+// A strong match where a name is missing. Only this shelter can tell, because the person is registered here.
+function ConfirmCard({ match: m, onDone }) {
+  const [done, setDone] = useState(null)
+
+  async function act(kind) {
+    await post(`/api/matches/${m.id}/${kind}`)
+    setDone(kind)
+    onDone()
+  }
+
+  if (done) return <div className="card"><p>{done === 'confirm' ? 'Confirmed. The family has been alerted.' : 'Dismissed. Nobody was told.'}</p></div>
+
+  return (
+    <div className="card">
+      <div className="summary">Possible match to confirm ({m.score}%)</div>
+      <p className="muted">Someone describes a person who may be registered here. Check it against what you know.</p>
+      <div className="columns">
+        <div>
+          <div className="muted">The family describes</div>
+          <div>{m.sought_name || 'Unnamed'}, {m.sought_sex}, age {m.sought_age ?? 'unknown'}</div>
+          <div>Last place: {m.sought_place || 'unknown'}</div>
+        </div>
+        <div>
+          <div className="muted">Registered here</div>
+          <div>{m.person_name || 'Unnamed'}, {m.person_sex}, age {m.person_age ?? 'unknown'}</div>
+          <div>Last place: {m.person_place || 'unknown'}</div>
+          <div>Marks: {m.person_marks || 'none noted'}</div>
+        </div>
+      </div>
+      <ul className="reasons">{m.reasons.map((x) => <li key={x}>{x}</li>)}</ul>
+      <div className="row">
+        <button className="btn big" onClick={() => act('confirm')}>Confirm</button>
+        <button className="btn secondary" onClick={() => act('dismiss')}>Dismiss</button>
+      </div>
+    </div>
   )
 }

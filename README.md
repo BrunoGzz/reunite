@@ -31,8 +31,8 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 | Case | Where to look |
 |---|---|
-| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits in "Needs review". Approve it there and the mother's search at St. Mary's lights up in "Our searches". |
-| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | At Riverside, "Our searches" shows the daughter's search highlighted. Send a contact request from its results: it goes to "Needs review" at the other shelters instead of to the mother, and never at Riverside itself. |
+| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits at the child's shelter (Riverside) under "Looking for people here" as a "Possible match to confirm". Confirm it there and the mother's search at St. Mary's lights up in "Our searches". |
+| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | At Riverside, "Our searches" shows the daughter's search highlighted. Send a contact request from its results: it goes to Harbor View Hotel, where she is, labelled "Staff decides: this person can't decide alone". No other shelter sees it. |
 | A couple searching for each other. | Riverside and St. Mary's both see their search highlighted with a Reciprocal badge. Both directions score 85% or more, so their request needs no photo. |
 | A person registered under an alias ("Mr. Blue"). | Riverside's open search for "Tomas Ferrer" finds him through marks and place, with a lower score. |
 | A person who will decline contact. | At Harbor View Hotel, open "Looking for people here" and decline. At Riverside, the search card in "Our searches" still says "Request sent. Pending confirmation." |
@@ -50,13 +50,13 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Our searches](docs/screenshots/our-searches.png)
 
-**Looking for people here** lists families asking about people registered at this shelter. The person decides: Accept or Decline.
+**Looking for people here** holds everything others started about people registered at this shelter, and only this shelter sees it. A request for a child or someone who cannot decide alone is marked "Staff decides: this person can't decide alone", and a match where a name is missing appears as a "Possible match to confirm" with Confirm and Dismiss.
 
 ![Looking for people here](docs/screenshots/looking-for-people-here.png)
 
-**Needs review** holds matches without a name and requests for children or people who need help deciding.
+**Possible match to confirm.** A strong match where a name is missing goes to the shelter where the registered person is, because only staff there can tell whether it fits. Confirm alerts the family's shelter. Dismiss tells nobody.
 
-![Needs review](docs/screenshots/needs-review.png)
+![Possible match to confirm](docs/screenshots/possible-match-to-confirm.png)
 
 **Search** starts with the microphone and the new-search form.
 
@@ -86,7 +86,7 @@ The photo in these screenshots is a neutral stand-in from a fake camera. All nam
 - Matching on name, last known place, age, distinctive marks, height and hair, with plain-language reasons.
 - Reciprocal search: only when both searches describe each other at 85% or more.
 - A consent flow for contact requests: photo, a short message, accept or decline.
-- "Our searches": one card per search, with its status, best score, sent request and reunion in one place. "Looking for people here": incoming requests about people registered at this shelter. "Needs review": matches without a name, and requests for minors and people who need assistance.
+- "Our searches": one card per search, with its status, best score, sent request and reunion in one place. "Looking for people here": everything others started about people registered at this shelter, and only this shelter sees it: contact requests (staff decides for minors and people who cannot decide alone) and possible matches to confirm.
 - Automatic alerts: a new match highlights the card of its search. Counts in the sidebar refresh every 15 seconds.
 
 ### What is simulated on purpose
@@ -123,9 +123,10 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 - **No phone.** The family member is registered at the shelter as a searcher in the same step as the search. Nothing is needed from their device. Email is optional.
 - **No ID.** Matching does not depend on documents. It uses description and last known place.
 - **Aliases and fear of giving a real name.** A name can be an alias or "unknown", with a checkbox "This may not be their real name". No immigration or legal status field exists anywhere, and the voice prompt tells the AI never to record it.
-- **A shelter deciding its own request.** A shelter can never accept or decline a request it sent, not even through "Needs review", and the API refuses it too. It only sees that request in "Our searches" as "Request sent. Pending confirmation." If the person asked about is at the same shelter, the request shows in both places, as "Elena Delgado (here) is looking for Rosa Delgado (also here)", and is decided there.
-- **Minors.** Under 18 is flagged automatically. Their contact requests go to "Needs review" instead of to the child.
-- **People who cannot decide (for example dementia).** A "needs assistance" flag sends requests to "Needs review" instead of to the person.
+- **A shelter deciding its own request.** A shelter can never accept or decline a request it sent, and the API refuses it too. It only sees that request in "Our searches" as "Request sent. Pending confirmation." If the person asked about is at the same shelter, the request shows in both places, as "Elena Delgado (here) is looking for Rosa Delgado (also here)", and is decided there.
+- **Minors.** Under 18 is flagged automatically. Their contact requests go to the shelter where they are, labelled "Staff decides: this person can't decide alone", and the volunteer there decides for them.
+- **People who cannot decide (for example dementia).** A "needs assistance" flag works the same way: the request goes to their shelter and staff decides.
+- **Matches without a name.** A strong match where a name is missing (a child who cannot say his name) is not alerted automatically. The shelter where the registered person is sees it as a "Possible match to confirm" with Confirm and Dismiss, because only staff there can tell whether it fits. No other shelter sees it.
 - **Declines that cannot be told apart.** After "Decline", the search card still says "Request sent. Pending confirmation.", exactly as if nobody had answered. Later requests from the same searcher to the same person, even from a new search, are dropped silently and also look pending.
 - **Noise.** Voice recording asks the browser for noise suppression and echo cancellation. The form is always there as a backup.
 - **Badly transcribed names.** The AI marks uncertain values as low confidence, and they turn yellow with "Please check". The volunteer can fix any field by typing, and the transcript is shown during review.
@@ -154,7 +155,7 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 
 ### Tradeoff 1: privacy against speed
 
-Asking for consent delays reunions that would have been harmless. A mother could see where her child is right away; instead she waits for a volunteer to show a request. We accept that delay on purpose, because revealing the location of someone who is hiding from an abuser cannot be undone, and a slower reunion can. The review path for minors and people who cannot decide adds a further delay for the same reason. The one shortcut is a reciprocal match: both searches describe each other at 85% or more, so no photo is needed, because both people have already asked for each other.
+Asking for consent delays reunions that would have been harmless. A mother could see where her child is right away; instead she waits for a volunteer to show a request. We accept that delay on purpose, because revealing the location of someone who is hiding from an abuser cannot be undone, and a slower reunion can. Having staff at the person's own shelter decide for minors and people who cannot decide alone, and confirm matches where a name is missing, adds a further delay for the same reason. The one shortcut is a reciprocal match: both searches describe each other at 85% or more, so no photo is needed, because both people have already asked for each other.
 
 ### Tradeoff 2: simple, but not built for 400,000 people
 

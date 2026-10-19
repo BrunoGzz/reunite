@@ -59,7 +59,6 @@ CREATE TABLE IF NOT EXISTS contact_requests (
   match_id INTEGER NOT NULL REFERENCES matches(id),
   from_shelter_id INTEGER NOT NULL REFERENCES shelters(id),
   to_shelter_id INTEGER NOT NULL REFERENCES shelters(id),
-  routed_to TEXT NOT NULL DEFAULT 'shelter', -- 'shelter', or 'review' for minors and people who need help deciding
   message TEXT,
   photo_file TEXT,
   status TEXT NOT NULL DEFAULT 'pending',

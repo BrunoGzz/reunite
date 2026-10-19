@@ -7,7 +7,6 @@ import Register from './pages/Register.jsx'
 import Search from './pages/Search.jsx'
 import OurSearches from './pages/OurSearches.jsx'
 import Incoming from './pages/Incoming.jsx'
-import Review from './pages/Review.jsx'
 import People from './pages/People.jsx'
 
 export default function App() {
@@ -40,7 +39,7 @@ export default function App() {
         <Route path="searches" element={<OurSearches />} />
         <Route path="searches/:id" element={<Search />} />
         <Route path="incoming" element={<Incoming />} />
-        <Route path="review" element={<Review />} />
+        <Route path="review" element={<Navigate to="/incoming" replace />} />
         <Route path="attention" element={<Navigate to="/searches" replace />} />
         <Route path="requests" element={<Navigate to="/incoming" replace />} />
         <Route path="people" element={<People />} />

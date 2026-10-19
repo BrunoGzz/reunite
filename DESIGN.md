@@ -44,8 +44,7 @@ There is no login and there are no roles. The app opens straight away, and a lef
 - navigation, organised by direction so the user always knows who is looking for whom, each item with its own count:
   - Home,
   - Our searches: people this shelter is looking for (count: searches with something new),
-  - Looking for people here: families asking about people registered at this shelter (count: requests waiting for a decision),
-  - Needs review: no-name matches, minors and "needs assistance" (count: items to review),
+  - Looking for people here: everything others started about people registered at this shelter: contact requests, and possible matches to confirm (count: items waiting),
   - People here (count: how many are registered, as a plain number),
 - at the very bottom, two small, discreet demo tools: "Register late arrival" and "Reset demo data".
 
@@ -141,30 +140,26 @@ A card with something new (a new alert, or a reunion) is highlighted with a "New
 
 Contact requests about people registered at this shelter, phrased "Someone is looking for Juan Pérez (here)". Each card shows the photo, who is asking, the message, and two big buttons: Accept and Decline (each asks to confirm). The volunteer shows this to the person, and they decide. Below, "Accepted" lists requests that were accepted, with where the family is. Declined requests are not listed. Empty state: "No one is looking for people here right now. When a family asks about someone registered at this shelter, it will appear on this page."
 
+Possible matches to confirm. A strong match (85% or more) where a name is missing on one side is not alerted automatically. It goes to the shelter where the registered person is, and shows in the same page as "Possible match to confirm", next to the requests: what the family describes, what is registered here (sex, age, last place, marks), why it matches, and two buttons, Confirm and Dismiss. Confirm raises the alert for the searcher's shelter. Dismiss removes it and tells nobody. The searcher and the searcher's shelter are never shown. This is how the nameless child in the demo is handled: only staff at his shelter can tell whether the description fits the child in front of them.
+
+No other shelter sees these items (requests for minors and for people who need help deciding, and possible matches to confirm), in the lists, in the counts, or through the API: confirming, dismissing, deciding and fetching a photo all return 403 for any other shelter.
+
 Who may decide: a shelter can never decide a request it sent. The sender only sees its own request in Our searches, as "Request sent. Pending confirmation." The API enforces this (403 for anyone who may not decide, and for the photo), not only the screens. The one exception is when the sender and the found person are at the same shelter: the request then shows in both places, Our searches and Looking for people here, worded "Elena Delgado (here) is looking for Rosa Delgado (also here)", and it is decided there.
 
 What happens on each decision:
 
 - Accept: both shelters see the other's name and location plus instructions. Only the search behind this request closes, plus the found person's own search for the searcher if it exists. Other relatives' searches for the same person stay open. The found person's own search is shown as reunited too, with the searcher's shelter as the location. The photo is deleted.
 - Decline: the searcher still sees "Pending confirmation", identical to no response. The photo is deleted. Any later request from the same searcher (a person, not a search) to the same found person is dropped silently, even from a brand new search: the searcher sees "Pending confirmation" as usual, but nothing reaches the receiving shelter (no pending request, no alert, no photo stored). The drop is stored as a declined request so the searcher's screens stay consistent.
-- If the sought person is a minor or has "needs assistance", the request is not shown to them: it goes to Needs review, where any shelter can decide.
+- If the sought person is a minor or has "needs assistance", the request is not handed to them: it goes to the shelter where they are, labelled "Staff decides: this person can't decide alone", and the volunteer there accepts or declines. No other shelter sees it.
 - If the searcher ticked email, accepting "sends" an email (simulated, saved in notifications, logged to the console, shown on the search's card as "Email sent to ...").
 
-### 4.8 Needs review
-
-Open to every shelter, with a count on the sidebar item. It holds two kinds of items:
-
-- Matches without a name on one side (score 85% or more). Each shows both descriptions side by side: what the family is looking for, and the registered person's sex, age, last place and marks. The shelter where the registered person is is never shown. Buttons: "Approve and alert" (creates the alert for the searcher's shelter) and "Not a match".
-- Contact requests for minors and for people flagged "needs assistance" (the ones this shelter sent are not listed or counted, because it may not decide them, unless the person is also here, in which case the "(also here)" wording applies): the same card as in Looking for people here (photo, message, Accept or Decline), phrased "Someone is looking for Rosa Delgado" without "(here)".
-- Empty state: "Nothing to review right now."
-
-### 4.9 People here
+### 4.8 People here
 
 - A simple list of everyone registered at this shelter: name (or "Unknown"), sex, age, when they were registered, and tags (Alias, Minor, Needs assistance).
 - A search box on top. No actions per row: status changes (transferred, left) are out of scope.
 - Empty state: "Nobody registered yet. Go to Home and choose \"Register a person\" to add the first one."
 
-### 4.10 Demo tools
+### 4.9 Demo tools
 
 Two small text buttons at the bottom of the sidebar, for showing the project, available everywhere:
 
@@ -198,14 +193,14 @@ Rules:
 
 A match is reciprocal only when both directions score 85% or more: the search scores 85% or more against the candidate, and the candidate has an open search that describes the searcher at 85% or more. There is no lower tier. Anything below 85% in either direction is not reciprocal.
 
-A reciprocal match gets the "Reciprocal" badge, alerts both shelters, and needs no photo for the contact request: sending the request counts as one volunteer's confirmation and Accept as the other's. Minors and "needs assistance" always go to Needs review.
+A reciprocal match gets the "Reciprocal" badge, alerts both shelters, and needs no photo for the contact request: sending the request counts as one volunteer's confirmation and Accept as the other's. A request for a minor or a person who needs help deciding is always decided by staff where that person is.
 
 ### 5.3 Automatic alerts
 
 Every time a person is registered, they are compared with all open searches.
 
 - Score of 85% or more and name similarity of 0.8 or more: an alert is created for the searcher's shelter ("Possible match found for your search for X").
-- Score of 85% or more but a name is missing on one side: it goes to Needs review. If approved, the alert is created.
+- Score of 85% or more but a name is missing on one side: it waits for the shelter where the registered person is to confirm it (see 4.7). If confirmed, the alert is created; if dismissed, nobody is told.
 - If also reciprocal: both shelters are alerted.
 
 ### 5.4 Voice pipeline
@@ -223,7 +218,7 @@ Every time a person is registered, they are compared with all open searches.
 - Candidate name and shelter are never shown in search results.
 - Location is revealed only after Accept.
 - Declined and unanswered look identical to the searcher. After a decline, repeat requests from the same searcher to the same person (any search) are dropped without trace on the receiving side. Limitation: someone who registers again under a different name at another shelter looks like a new searcher; without identity documents this cannot be fully prevented. The Search screen therefore lets the volunteer pick an already registered searcher instead of creating a new one.
-- Photos live in `server/data/photos/` with random names, are never served statically, and are readable only via `GET /api/photos/:id` by a shelter that may decide the request: the receiving shelter, or any shelter other than the sender for a request in Needs review. The sending shelter cannot fetch it. They are deleted when the request is decided.
+- Photos live in `server/data/photos/` with random names, are never served statically, and are readable only via `GET /api/photos/:id` by the shelter where the person asked about is registered, which is the only one that may decide the request. The sending shelter cannot fetch it. They are deleted when the request is decided.
 - A shelter can never decide a request it sent. The API refuses it with 403, so hiding the buttons is not the only protection. The exception is a request where the sender and the found person are at the same shelter.
 - No audio is stored. No immigration status field exists anywhere.
 - Because there is no login, these rules protect against honest mistakes, not against someone who deliberately switches shelter in the sidebar. Real use would need real accounts, with the shelter taken from the account.
@@ -282,7 +277,7 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - match_id
 - from_shelter_id
 - to_shelter_id
-- routed_to (shelter, or review for minors and people who need help deciding)
+- (every request is for the shelter where the person is registered: `to_shelter_id`)
 - message
 - photo_file (nullable, random file name, cleared on decision)
 - status (pending, accepted, declined)
@@ -324,8 +319,8 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 
 `server/seed.js` creates 3 shelters, about 40 people and these cases:
 
-1. An 8-year-old child from Lincoln Elementary, registered at one shelter without a name. His mother searches from another shelter. Only the last known place, his age and his red backpack connect them, so the match waits in Needs review.
-2. An 81-year-old mother moved from a care home by another agency to a hotel, flagged "needs assistance". Her daughter searches for her. The contact request goes to Needs review instead of to her.
+1. An 8-year-old child from Lincoln Elementary, registered at one shelter without a name. His mother searches from another shelter. Only the last known place, his age and his red backpack connect them, so the match waits at the child's shelter as a "Possible match to confirm". When staff there confirms it, his mother's search lights up in Our searches.
+2. An 81-year-old mother moved from a care home by another agency to a hotel, flagged "needs assistance". Her daughter searches for her. The contact request goes to the hotel, labelled "Staff decides: this person can't decide alone", and the volunteer there decides.
 3. A couple searching for each other (reciprocal).
 4. A person registered under an alias.
 5. A case where the sought person declines contact.
@@ -335,8 +330,8 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 
 ## 10. Decisions I made that you may want to change
 
-- There are no roles. The review queue is open to every shelter, and any shelter can decide a request for a minor or a person who needs help deciding.
+- There are no roles and no shared queue. Everything that needs a decision goes to the shelter where the registered person is, because only that shelter can tell whether a description fits and can show a request to the person. Nobody else sees or decides these items.
 - Last place is free text with autocomplete from existing values; there is no separate places table.
 - The searcher is stored as a normal row in `people`, so reciprocal detection is a simple lookup.
-- Match `state` is a single column instead of separate tables for review and alerts.
-- The sidebar is organised by direction: Our searches (people we are looking for) and Looking for people here (people others are looking for at our shelter), so the user always knows who is looking for whom. Alerts are not a separate list: a new alert highlights the card of its search. Needs review stays its own item. Home stays at two buttons.
+- Match `state` is a single column instead of separate tables for confirming and alerts.
+- The sidebar is organised by direction: Our searches (people we are looking for) and Looking for people here (people others are looking for at our shelter), so the user always knows who is looking for whom. Alerts are not a separate list: a new alert highlights the card of its search. Home stays at two buttons.

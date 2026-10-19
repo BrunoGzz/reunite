@@ -217,3 +217,7 @@ main > table { background: var(--card); border-radius: var(--radius); overflow: 
 
 /* Count on the "People here" item: a plain number, not something to act on */
 .count.quiet { background: #efe9e3; color: var(--muted); }
+
+/* Requests about a child or someone who cannot decide alone */
+.staff-note { background: #fff8e1; border-radius: 10px; padding: 8px 12px; font-weight: 600; display: inline-block; }
+.staff-note .tag { margin-left: 0; margin-right: 8px; background: #f3e6b8; }

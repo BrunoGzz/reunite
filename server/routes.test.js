@@ -48,9 +48,8 @@ const ROWS = [
   { method: 'POST', pattern: '/requests/:id/decide', url: `/requests/${MISSING}/decide`, body: { decision: 'accept' }, none: 401, session: 404 },
   { method: 'GET', pattern: '/photos/:id', url: `/photos/${MISSING}`, none: 401, session: 404 },
   { method: 'GET', pattern: '/badges', url: '/badges', none: 401, session: 200 },
-  { method: 'GET', pattern: '/review', url: '/review', none: 401, session: 200 },
-  { method: 'POST', pattern: '/review/matches/:id/approve', url: `/review/matches/${MISSING}/approve`, body: {}, none: 401, session: 404 },
-  { method: 'POST', pattern: '/review/matches/:id/reject', url: `/review/matches/${MISSING}/reject`, body: {}, none: 401, session: 404 },
+  { method: 'POST', pattern: '/matches/:id/confirm', url: `/matches/${MISSING}/confirm`, body: {}, none: 401, session: 404 },
+  { method: 'POST', pattern: '/matches/:id/dismiss', url: `/matches/${MISSING}/dismiss`, body: {}, none: 401, session: 404 },
   { method: 'GET', pattern: '/voice/status', url: '/voice/status', none: 401, session: 200 },
   { method: 'POST', pattern: '/voice', url: '/voice', body: {}, none: 401, session: 503 },
   // These change data, so they run last.
@@ -137,16 +136,20 @@ test('Our searches: a sent request always reads as sent, even after a decline, a
 })
 
 test('Our searches: the card holds the reunion, with the location and the simulated email', async () => {
-  const harbor = await cookieFor(3)
-  const item = (await api(harbor, 'GET', '/review')).body.matches[0] // the nameless child, found for Carla at St. Mary's
-  assert.equal((await api(harbor, 'POST', `/review/matches/${item.id}/approve`)).status, 200)
-  const marys = await cookieFor(2)
+  // The nameless child is registered at Riverside, so Riverside confirms the possible match. His mother is at St. Mary's.
+  const river = await cookieFor(1), marys = await cookieFor(2)
+  const item = (await api(river, 'GET', '/incoming')).body.toConfirm[0]
+  assert.equal((await cards(2)).find((c) => c.name === 'Daniel Reyes').new_activity, false)
+  assert.equal((await api(river, 'POST', `/matches/${item.id}/confirm`)).status, 200)
   const child = (await cards(2)).find((c) => c.name === 'Daniel Reyes')
-  assert.equal(child.new_activity, true) // approving raised an alert for the mother's search
+  assert.equal(child.new_activity, true) // confirming raised an alert for the mother's search
 
+  // He is a minor: the request is for the volunteer at Riverside to decide, like any other.
   const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(item.id)
   const id = engine.createRequest({ match, message: 'Daniel, I am here', photo: null })
-  assert.equal((await api(harbor, 'POST', `/requests/${id}/decide`, { decision: 'accept' })).status, 200)
+  const waiting = (await api(river, 'GET', '/incoming')).body.pending.find((r) => r.id === id)
+  assert.equal(waiting.is_minor, 1)
+  assert.equal((await api(river, 'POST', `/requests/${id}/decide`, { decision: 'accept' })).status, 200)
 
   const reunited = (await cards(2)).find((c) => c.name === 'Daniel Reyes')
   assert.equal(reunited.status, 'closed')
@@ -196,55 +199,96 @@ test('Looking for people here: waiting and accepted requests for this shelter on
   assert.equal(JSON.stringify((await api(marys, 'GET', '/incoming')).body).includes('Lena'), false)
 })
 
-test('Needs review: other shelters see a request for someone who needs help deciding, but the sender never does', async () => {
-  const harbor = await cookieFor(3), marys = await cookieFor(2), river = await cookieFor(1)
-  const queue = (await api(harbor, 'GET', '/review')).body
-  assert.equal(queue.requests.length, 0)
-  assert.equal(queue.matches.length, 0) // the child was approved above
+test('possible matches to confirm: only the shelter where the person is registered sees them, and only it can act', async () => {
+  // Reset the one confirmed above: make a fresh nameless match at Riverside for a search at St. Mary's.
+  const river = await cookieFor(1), marys = await cookieFor(2), harbor = await cookieFor(3)
+  const mia = engine.addPerson({ sex: 'female', age: 6, hair_color: 'blond', marks: 'yellow raincoat', last_place: 'Oak Elementary' }, 1)
+  const mother = engine.addPerson({ name: 'Paula Gil', sex: 'female', age: 33 }, 2)
+  const search = engine.addSearch({ shelterId: 2, searcherPersonId: mother.id, target: { name: 'Mia Gil', sex: 'female', age: 6, hair_color: 'blond', marks: 'yellow raincoat', last_place: 'Oak Elementary' } })
+  engine.runSearch(search)
+  const match = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(search.id, mia.id)
+  assert.equal(match.state, 'needs_review')
 
-  // Rosa needs assistance, so Riverside's request for her goes to review, not to Harbor's own list.
+  const mine = (await api(river, 'GET', '/incoming')).body.toConfirm.find((m) => m.id === match.id)
+  assert.equal(mine.sought_name, 'Mia Gil')
+  assert.equal(mine.person_name, null)
+  assert.equal(mine.person_place, 'Oak Elementary')
+  assert.ok(!JSON.stringify(mine).includes('shelter') && !JSON.stringify(mine).includes('Paula'), 'neither the searcher nor the searcher\'s shelter is shown')
+  assert.ok((await badges(1)).incoming >= 1)
+
+  // Nobody else sees it, in the list or in the count: not the searcher's own shelter, not a third one.
+  for (const cookie of [marys, harbor]) assert.ok(!(await api(cookie, 'GET', '/incoming')).body.toConfirm.some((m) => m.id === match.id))
+  const countAtMarys = (await badges(2)).incoming
+  assert.equal(countAtMarys, (await api(marys, 'GET', '/incoming')).body.pending.length + (await api(marys, 'GET', '/incoming')).body.toConfirm.length)
+
+  // And nobody else can act on it: 403, and nothing changes.
+  for (const cookie of [marys, harbor]) {
+    assert.equal((await api(cookie, 'POST', `/matches/${match.id}/confirm`)).status, 403)
+    assert.equal((await api(cookie, 'POST', `/matches/${match.id}/dismiss`)).status, 403)
+  }
+  assert.equal(db.prepare('SELECT state FROM matches WHERE id = ?').get(match.id).state, 'needs_review')
+  assert.ok(!(await cards(2)).find((c) => c.id === search.id).new_activity)
+
+  // Confirming alerts the searcher's shelter, and the item is gone for good.
+  assert.equal((await api(river, 'POST', `/matches/${match.id}/confirm`)).status, 200)
+  assert.equal((await cards(2)).find((c) => c.id === search.id).new_activity, true)
+  assert.ok(!(await api(river, 'GET', '/incoming')).body.toConfirm.some((m) => m.id === match.id))
+  assert.equal((await api(river, 'POST', `/matches/${match.id}/confirm`)).status, 404)
+})
+
+test('dismissing a possible match removes it without alerting anyone', async () => {
+  const river = await cookieFor(1), marys = await cookieFor(2)
+  const kid = engine.addPerson({ sex: 'male', age: 5, hair_color: 'red', marks: 'green boots', last_place: 'Pine Elementary' }, 1)
+  const dad = engine.addPerson({ name: 'Omar Ali', sex: 'male', age: 38 }, 2)
+  const search = engine.addSearch({ shelterId: 2, searcherPersonId: dad.id, target: { name: 'Sami Ali', sex: 'male', age: 5, hair_color: 'red', marks: 'green boots', last_place: 'Pine Elementary' } })
+  engine.runSearch(search)
+  const match = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(search.id, kid.id)
+  assert.equal((await api(marys, 'POST', `/matches/${match.id}/dismiss`)).status, 403) // not their person
+  assert.equal((await api(river, 'POST', `/matches/${match.id}/dismiss`)).status, 200)
+  assert.ok(!(await api(river, 'GET', '/incoming')).body.toConfirm.some((m) => m.id === match.id))
+  assert.equal((await cards(2)).find((c) => c.id === search.id).new_activity, false)
+  // It no longer counts as a match for that search.
+  assert.equal((await cards(2)).find((c) => c.id === search.id).match_count, 0)
+})
+
+test('requests for a minor or a person who needs help deciding go to the shelter where they are, and nowhere else', async () => {
+  const harbor = await cookieFor(3), marys = await cookieFor(2), river = await cookieFor(1)
+  // Rosa needs assistance and is at Harbor. Riverside (Elena) sends the request.
   const rosaSearch = db.prepare("SELECT id FROM searches WHERE name = 'Rosa Delgado'").get().id
   const match = db.prepare('SELECT * FROM matches WHERE search_id = ?').get(rosaSearch)
   const id = engine.createRequest({ match, message: 'Mom, it is Elena', photo: null })
-  assert.equal(db.prepare('SELECT routed_to FROM contact_requests WHERE id = ?').get(id).routed_to, 'review')
-  const countBefore = (await badges(2)).review
 
-  // Everyone except the sender sees it, and nobody sees where anyone is.
-  for (const [shelter, cookie, here] of [[3, harbor, true], [2, marys, false]]) {
-    const filled = (await api(cookie, 'GET', '/review')).body
-    assert.equal(filled.requests.length, 1, `shelter ${shelter} should see it`)
-    assert.equal(filled.requests[0].person_name, 'Rosa Delgado')
-    assert.equal(filled.requests[0].needs_assistance, 1)
-    assert.equal(filled.requests[0].person_here, here) // Rosa is at Harbor
-    assert.equal(filled.requests[0].sender_here, false)
-    assert.ok(!JSON.stringify(filled).includes('shelter'), 'the review queue must not reveal where anyone is')
-  }
-  assert.equal((await api(harbor, 'GET', '/incoming')).body.pending.length, 0)
+  const atHarbor = (await api(harbor, 'GET', '/incoming')).body.pending.find((r) => r.id === id)
+  assert.equal(atHarbor.person_name, 'Rosa Delgado')
+  assert.equal(atHarbor.needs_assistance, 1) // so the card says "Staff decides: this person can't decide alone"
+  assert.equal(atHarbor.sender_here, false)
+  assert.equal((await badges(3)).incoming, 1)
+  for (const cookie of [river, marys]) assert.ok(!(await api(cookie, 'GET', '/incoming')).body.pending.some((r) => r.id === id))
+  assert.equal((await badges(1)).incoming, (await api(river, 'GET', '/incoming')).body.pending.length + (await api(river, 'GET', '/incoming')).body.toConfirm.length)
 
-  // The sender (Riverside) does not see it in the queue or in the count, and can neither decide it nor see its photo.
-  assert.equal((await api(river, 'GET', '/review')).body.requests.length, 0)
-  assert.equal((await badges(1)).review, 0)
-  assert.equal((await badges(2)).review, countBefore)
+  // Only Harbor can decide it, and only Harbor can see the photo. The sender (Riverside) cannot, nor can St. Mary's.
   const file = 'test-photo-' + Date.now()
   fs.writeFileSync(path.join(photoDir, file), 'x')
   try {
     db.prepare('UPDATE contact_requests SET photo_file = ? WHERE id = ?').run(file, id)
     const photo = async (cookie) => (await fetch(`${base}/api/photos/${id}`, { headers: { cookie } })).status
-    assert.equal(await photo(marys), 200)
+    assert.equal(await photo(harbor), 200)
     assert.equal(await photo(river), 403)
+    assert.equal(await photo(marys), 403)
   } finally {
     fs.rmSync(path.join(photoDir, file), { force: true })
     db.prepare('UPDATE contact_requests SET photo_file = NULL').run()
   }
-  const refused = await api(river, 'POST', `/requests/${id}/decide`, { decision: 'accept' })
-  assert.equal(refused.status, 403)
+  for (const cookie of [river, marys]) {
+    assert.equal((await api(cookie, 'POST', `/requests/${id}/decide`, { decision: 'accept' })).status, 403)
+    assert.equal((await api(cookie, 'POST', `/requests/${id}/decide`, { decision: 'decline' })).status, 403)
+  }
   assert.equal(db.prepare('SELECT status FROM contact_requests WHERE id = ?').get(id).status, 'pending') // nothing happened
-  assert.equal((await api(river, 'POST', `/requests/${id}/decide`, { decision: 'decline' })).status, 403)
 
-  const decided = await api(marys, 'POST', `/requests/${id}/decide`, { decision: 'accept' }) // another shelter may
+  const decided = await api(harbor, 'POST', `/requests/${id}/decide`, { decision: 'accept' })
   assert.equal(decided.status, 200)
   assert.equal(decided.body.reunion.person_name, 'Elena Delgado')
-  assert.equal((await badges(2)).review, countBefore - 1)
+  assert.equal((await badges(3)).incoming, 0)
 })
 
 test('a shelter can never decide a request it sent, even one meant for another shelter\'s own list', async () => {
@@ -254,7 +298,6 @@ test('a shelter can never decide a request it sent, even one meant for another s
   engine.runSearch(search)
   const match = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(search.id, lena.id)
   const id = engine.createRequest({ match, message: 'Rita, it is Leo', photo: null })
-  assert.equal(db.prepare('SELECT routed_to FROM contact_requests WHERE id = ?').get(id).routed_to, 'shelter')
   assert.equal((await api(await cookieFor(1), 'POST', `/requests/${id}/decide`, { decision: 'accept' })).status, 403) // the sender
   assert.equal((await api(await cookieFor(2), 'POST', `/requests/${id}/decide`, { decision: 'accept' })).status, 403) // a third shelter
   assert.equal((await api(await cookieFor(3), 'POST', `/requests/${id}/decide`, { decision: 'decline' })).status, 200) // the person's shelter
@@ -284,23 +327,22 @@ test('the sender and the found person at the same shelter: shown in both places,
   // A shelter other than the person's has no card for it. Someone elsewhere is not marked "also here".
   assert.equal((await cards(2)).some((c) => c.also_here), false)
 
-  // The same holds for the review queue: a request for someone who needs help deciding, at the sender's own shelter.
+  // The same holds for someone who needs help deciding, at the sender's own shelter: the volunteer there decides.
   const marta = engine.addPerson({ name: 'Marta Ruiz', sex: 'female', age: 85, needs_assistance: true, last_place: 'Sunrise Care Home' }, 1)
   const hija = engine.addPerson({ name: 'Lucía Ruiz', sex: 'female', age: 55 }, 1)
   const s2 = engine.addSearch({ shelterId: 1, searcherPersonId: hija.id, target: { name: 'Marta Ruiz', sex: 'female', age: 85, last_place: 'Sunrise Care Home' } })
   engine.runSearch(s2)
   const m2 = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(s2.id, marta.id)
   const id2 = engine.createRequest({ match: m2, message: 'Mamá', photo: null })
-  assert.equal(db.prepare('SELECT routed_to FROM contact_requests WHERE id = ?').get(id2).routed_to, 'review')
-  const mine = (await api(river, 'GET', '/review')).body.requests.find((r) => r.id === id2)
+  const mine = (await api(river, 'GET', '/incoming')).body.pending.find((r) => r.id === id2)
   assert.equal(mine.sender_here, true)
-  assert.equal(mine.person_here, true)
+  assert.equal(mine.needs_assistance, 1)
   assert.equal((await api(river, 'POST', `/requests/${id2}/decide`, { decision: 'decline' })).status, 200)
 })
 
-test('badges: each sidebar count is for this shelter, except the review queue', async () => {
+test('badges: each sidebar count is for this shelter', async () => {
   const b = await badges(1)
-  assert.deepEqual(Object.keys(b).sort(), ['incoming', 'people', 'review', 'searches'])
+  assert.deepEqual(Object.keys(b).sort(), ['incoming', 'people', 'searches'])
   assert.equal(b.people, db.prepare('SELECT COUNT(*) AS n FROM people WHERE shelter_id = 1').get().n)
   assert.notEqual(b.people, (await badges(2)).people)
 })

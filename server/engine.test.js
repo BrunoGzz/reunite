@@ -96,7 +96,7 @@ test('a decline also covers new searches from the same searcher to the same pers
 
   engine.createRequest({ match, message: 'again', photo: { buffer: Buffer.from('x') } })
 
-  const waiting = db.prepare("SELECT COUNT(*) AS n FROM contact_requests WHERE status = 'pending' AND routed_to = 'shelter' AND to_shelter_id = ?").get(maria.shelter_id).n
+  const waiting = db.prepare("SELECT COUNT(*) AS n FROM contact_requests r JOIN matches m ON m.id = r.match_id WHERE r.status = 'pending' AND m.person_id = ?").get(maria.id).n
   assert.equal(waiting, 0)
   assert.equal(notifications(), before.notifications)
   assert.equal(photoCount(), before.photos)
@@ -110,7 +110,7 @@ test('a different searcher is not affected by that decline', () => {
   const match = matchFor(search, 'Maria Santos')
   engine.createRequest({ match, message: 'hello', photo: null })
   const maria = person('Maria Santos')
-  const waiting = db.prepare("SELECT COUNT(*) AS n FROM contact_requests WHERE status = 'pending' AND routed_to = 'shelter' AND to_shelter_id = ?").get(maria.shelter_id).n
+  const waiting = db.prepare("SELECT COUNT(*) AS n FROM contact_requests r JOIN matches m ON m.id = r.match_id WHERE r.status = 'pending' AND m.person_id = ?").get(maria.id).n
   assert.equal(waiting, 1)
 })
 

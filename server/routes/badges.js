@@ -15,16 +15,13 @@ router.get('/badges', (req, res) => {
     WHERE n.is_read = 0 AND n.kind IN ('match_alert', 'reunion') AND n.shelter_id = @shelter AND s.shelter_id = @shelter
   `, { shelter })
 
-  // Looking for people here: requests waiting for a decision about someone registered at this shelter.
-  const incoming = one("SELECT COUNT(*) AS n FROM contact_requests WHERE status = 'pending' AND routed_to = 'shelter' AND to_shelter_id = @shelter", { shelter })
-
-  // Needs review: open to every shelter.
-  // The requests this shelter sent are not for it to decide, so they are not counted (unless the person is also here).
-  const review = one("SELECT COUNT(*) AS n FROM matches WHERE state = 'needs_review'", {})
-    + one("SELECT COUNT(*) AS n FROM contact_requests WHERE status = 'pending' AND routed_to = 'review' AND NOT (from_shelter_id = @shelter AND to_shelter_id != @shelter)", { shelter })
+  // Looking for people here: requests waiting for a decision about someone registered at this shelter, plus
+  // possible matches for its people that need confirming. Nothing here is counted for any other shelter.
+  const incoming = one("SELECT COUNT(*) AS n FROM contact_requests WHERE status = 'pending' AND to_shelter_id = @shelter", { shelter })
+    + one("SELECT COUNT(*) AS n FROM matches m JOIN people p ON p.id = m.person_id WHERE m.state = 'needs_review' AND p.shelter_id = @shelter", { shelter })
 
   const people = one('SELECT COUNT(*) AS n FROM people WHERE shelter_id = @shelter', { shelter })
-  res.json({ searches, incoming, review, people })
+  res.json({ searches, incoming, people })
 })
 
 export default router

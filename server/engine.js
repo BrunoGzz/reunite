@@ -124,12 +124,12 @@ function openSearchesFor(person) {
   `).all({ self: person.id, sex: person.sex, low, high })
 }
 
-// Decides whether a strong match raises an alert, goes to review, or just waits.
+// Decides whether a strong match raises an alert, waits for the registered person's shelter to confirm it, or just waits.
 function raiseAlertIfStrong(match, search, person, recip, fromNewSearch) {
   if (match.score < ALERT_MIN || match.state !== 'new') return
   const nameKnown = match.name_score !== null
   if (!nameKnown) {
-    db.prepare("UPDATE matches SET state = 'needs_review' WHERE id = ?").run(match.id) // shows up under "Needs review"
+    db.prepare("UPDATE matches SET state = 'needs_review' WHERE id = ?").run(match.id) // the shelter where the person is asked to confirm it
     return
   }
   if (match.name_score < NAME_MIN) return
@@ -234,13 +234,11 @@ export function resultCard(match) {
   return card
 }
 
-// Who may decide a contact request (and see its photo). A shelter can never decide a request it sent, so it
-// cannot approve its own search: the exception is when the person asked about is registered at that same
-// shelter, where the request is decided on the spot. Everyone else may decide a request in the review queue;
-// otherwise only the shelter the request is for.
+// Who may decide a contact request (and see its photo): only the shelter where the person asked about is
+// registered. That covers minors and people who cannot decide alone too: the volunteer there decides for them.
+// So a shelter can never decide a request it sent, unless the person is registered at that same shelter.
 export function mayDecide(request, shelterId) {
-  if (request.from_shelter_id === shelterId) return request.to_shelter_id === shelterId
-  return request.routed_to === 'review' || request.to_shelter_id === shelterId
+  return request.to_shelter_id === shelterId
 }
 
 export function deletePhoto(file) {
@@ -284,18 +282,15 @@ export function createRequest({ match, message, photo }) {
   if (declinedBefore) {
     return insertRow('contact_requests', {
       match_id: match.id, from_shelter_id: search.shelter_id, to_shelter_id: person.shelter_id,
-      routed_to: 'shelter', message: null, photo_file: null,
+      message: null, photo_file: null,
       status: 'declined', created_at: now(), decided_at: now(),
     })
   }
 
-  // Minors and people who need help deciding are not asked directly: their request goes to "Needs review".
-  const special = person.is_minor || person.needs_assistance
   const id = insertRow('contact_requests', {
     match_id: match.id,
     from_shelter_id: search.shelter_id,
     to_shelter_id: person.shelter_id,
-    routed_to: special ? 'review' : 'shelter',
     message: message || null,
     photo_file: savePhoto(photo),
     status: 'pending',
