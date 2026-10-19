@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Clock, Repeat2, Camera, Upload } from 'lucide-react'
 import { post } from '../api.js'
 
 // Search results. Never shows names or shelters, except after the other person accepted.
@@ -15,13 +16,13 @@ export default function ResultList({ results, onChanged }) {
         <div className="card result" key={r.match_id}>
           <div className="score">{r.score}%</div>
           <div className="grow">
-            <div className="summary">{r.summary} {r.reciprocal && <span className="tag accent">Reciprocal</span>}</div>
+            <div className="summary">{r.summary} {r.reciprocal && <span className="tag accent"><Repeat2 size={13} style={{ verticalAlign: '-2px', marginRight: 4 }} />Reciprocal</span>}</div>
             <ul className="reasons">{r.reasons.map((reason) => <li key={reason}>{reason}</li>)}</ul>
             {r.request === 'accepted' && <Reunion reunion={r.reunion} />}
           </div>
           <div className="action">
             {r.request === null && <button className="btn" onClick={() => setAsking(r)}>Send contact request</button>}
-            {r.request === 'pending' && <span className="status">Pending confirmation</span>}
+            {r.request === 'pending' && <span className="status"><Clock size={18} />Pending confirmation</span>}
           </div>
         </div>
       ))}
@@ -49,7 +50,6 @@ function ContactModal({ result, onClose, onSent }) {
   const [preview, setPreview] = useState('')
   const [cameraError, setCameraError] = useState('')
   const [message, setMessage] = useState('')
-  const [detail, setDetail] = useState('')
   const [error, setError] = useState('')
   const [sending, setSending] = useState(false)
 
@@ -80,7 +80,6 @@ function ContactModal({ result, onClose, onSent }) {
   async function send() {
     const form = new FormData()
     form.append('message', message)
-    form.append('familyDetail', detail)
     if (photo) form.append('photo', photo, 'photo.jpg')
     setSending(true)
     try {
@@ -109,8 +108,8 @@ function ContactModal({ result, onClose, onSent }) {
             {!cameraError && <video ref={videoRef} autoPlay playsInline muted className="photo" />}
             {cameraError && <p className="muted">{cameraError}</p>}
             <div className="row">
-              {!cameraError && <button className="btn secondary" onClick={takePhoto}>Take photo</button>}
-              <label className="btn secondary">Upload a file
+              {!cameraError && <button className="btn secondary" onClick={takePhoto}><Camera size={18} />Take photo</button>}
+              <label className="btn secondary"><Upload size={18} />Upload a file
                 <input type="file" accept="image/*" hidden onChange={(e) => e.target.files[0] && keepPhoto(e.target.files[0])} />
               </label>
             </div>
@@ -119,9 +118,6 @@ function ContactModal({ result, onClose, onSent }) {
 
         <label className="field">Short message from the person looking
           <textarea rows="2" value={message} onChange={(e) => setMessage(e.target.value)} />
-        </label>
-        <label className="field">Something only the family would know (optional)
-          <input value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="For example: our dog is called Toby" />
         </label>
 
         {error && <p className="error">{error}</p>}

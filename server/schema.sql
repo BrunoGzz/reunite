@@ -21,12 +21,8 @@ CREATE TABLE IF NOT EXISTS people (
   last_seen_day TEXT,
   last_seen_part TEXT,
   arrival_method TEXT,
-  moved_by TEXT,
-  travelling_with TEXT,
   is_minor INTEGER NOT NULL DEFAULT 0,
   needs_assistance INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'present',
-  transferred_to_shelter_id INTEGER REFERENCES shelters(id),
   created_at TEXT NOT NULL
 );
 
@@ -45,8 +41,6 @@ CREATE TABLE IF NOT EXISTS searches (
   last_seen_day TEXT,
   last_seen_part TEXT,
   arrival_method TEXT,
-  moved_by TEXT,
-  travelling_with TEXT,
   email TEXT,
   email_opt_in INTEGER NOT NULL DEFAULT 0,
   status TEXT NOT NULL DEFAULT 'open',
@@ -87,7 +81,6 @@ CREATE TABLE IF NOT EXISTS contact_requests (
   to_shelter_id INTEGER NOT NULL REFERENCES shelters(id),
   routed_to TEXT NOT NULL DEFAULT 'shelter',
   message TEXT,
-  family_detail TEXT,
   photo_file TEXT,
   status TEXT NOT NULL DEFAULT 'pending',
   created_at TEXT NOT NULL,

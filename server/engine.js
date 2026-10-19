@@ -12,7 +12,7 @@ const RECIPROCAL_MIN = 70 // how well the other search must describe the searche
 
 const DESCRIPTION_FIELDS = [
   'name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place',
-  'last_seen_day', 'last_seen_part', 'arrival_method', 'moved_by', 'travelling_with',
+  'last_seen_day', 'last_seen_part', 'arrival_method',
 ]
 const SEXES = ['male', 'female', 'unknown']
 const HEIGHTS = ['short', 'medium', 'tall', 'unknown']
@@ -50,7 +50,6 @@ export function addPerson(input, shelterId) {
     name_is_alias: input.name_is_alias ? 1 : 0,
     is_minor: data.age !== null && data.age < 18 ? 1 : 0,
     needs_assistance: input.needs_assistance ? 1 : 0,
-    status: 'present',
     created_at: now(),
   }
   const id = insertRow('people', row)
@@ -116,7 +115,7 @@ function candidatesFor(search) {
   const [low, high] = ageWindow(search.age)
   return db.prepare(`
     SELECT * FROM people
-    WHERE status = 'present' AND id != @self
+    WHERE id != @self
       AND (@sex = 'unknown' OR sex IN (@sex, 'unknown'))
       AND (@low IS NULL OR age IS NULL OR age BETWEEN @low AND @high)
   `).all({ self: search.searcher_person_id, sex: search.sex, low, high })
@@ -271,7 +270,7 @@ function savePhoto(file) {
 // - once a searcher has been declined by a person, any later request from that searcher to that
 //   person (even from a new search) is recorded as declined and never reaches the receiving shelter.
 // Either way the searcher sees "Pending confirmation".
-export function createRequest({ match, message, familyDetail, photo }) {
+export function createRequest({ match, message, photo }) {
   const earlier = db.prepare("SELECT id FROM contact_requests WHERE match_id = ? AND (status = 'pending' OR status = 'declined') ORDER BY id DESC LIMIT 1").get(match.id)
   if (earlier) return earlier.id
 
@@ -285,7 +284,7 @@ export function createRequest({ match, message, familyDetail, photo }) {
   if (declinedBefore) {
     return insertRow('contact_requests', {
       match_id: match.id, from_shelter_id: search.shelter_id, to_shelter_id: person.shelter_id,
-      routed_to: 'shelter', message: null, family_detail: null, photo_file: null,
+      routed_to: 'shelter', message: null, photo_file: null,
       status: 'declined', created_at: now(), decided_at: now(),
     })
   }
@@ -297,7 +296,6 @@ export function createRequest({ match, message, familyDetail, photo }) {
     to_shelter_id: person.shelter_id,
     routed_to: special ? 'coordinator' : 'shelter',
     message: message || null,
-    family_detail: familyDetail || null,
     photo_file: savePhoto(photo),
     status: 'pending',
     created_at: now(),

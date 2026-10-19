@@ -12,7 +12,7 @@ const toolCall = (input, name = 'fill_form') => ({
   choices: [{ message: { role: 'assistant', content: null, tool_calls: [{ id: 'call_1', type: 'function', function: { name, arguments: typeof input === 'string' ? input : JSON.stringify(input) } }] } }],
 })
 const f = (value, confidence = 'high') => ({ value, confidence })
-const NULLS = Object.fromEntries(['name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place', 'last_seen_day', 'last_seen_part', 'arrival_method', 'moved_by', 'travelling_with', 'needs_assistance'].map((k) => [k, f(null)]))
+const NULLS = Object.fromEntries(['name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place', 'last_seen_day', 'last_seen_part', 'arrival_method', 'needs_assistance'].map((k) => [k, f(null)]))
 const goodInput = () => ({ ...NULLS, name: f('Itziar Etxeberria', 'low'), sex: f('female'), age: f(52), marks: f('scar on hand'), language: 'Spanish' })
 const reset = () => {
   seen.transcribe = []
@@ -58,7 +58,7 @@ const base = `http://127.0.0.1:${server.address().port}`
 test.after(() => { server.close(); mock.close() })
 
 const login = async () => {
-  const res = await fetch(`${base}/api/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ shelterId: 1, role: 'volunteer', password: process.env.DEMO_PASSWORD || 'dali2026' }) })
+  const res = await fetch(`${base}/api/session`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ shelterId: 1, role: 'volunteer' }) })
   return res.headers.getSetCookie()[0].split(';')[0]
 }
 

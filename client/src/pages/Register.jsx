@@ -29,10 +29,10 @@ export default function Register() {
     return (
       <div className="card done">
         <h1>Saved</h1>
-        <p>{saved.name || 'This person'} is registered here{saved.is_minor ? ' and marked as a minor' : ''}. If someone is looking for them, you will see an alert on the dashboard.</p>
+        <p>{saved.name || 'This person'} is registered here{saved.is_minor ? ' and marked as a minor' : ''}. If someone is looking for them, you will see an alert in the sidebar.</p>
         <div className="row">
           <button className="btn big" onClick={() => { setSaved(null); reset() }}>Register another person</button>
-          <Link className="btn secondary" to="/">Back to dashboard</Link>
+          <Link className="btn secondary" to="/">Back to Home</Link>
         </div>
       </div>
     )
@@ -40,7 +40,8 @@ export default function Register() {
 
   return (
     <>
-      <h1>Register someone who is here</h1>
+      <h1>Register a person</h1>
+      <p className="subtitle">Speak or type. You can check everything before saving.</p>
       <VoiceButton mode="person" onResult={fill} />
       <Spoken spoken={spoken} />
       <div className="card">

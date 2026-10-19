@@ -27,7 +27,7 @@ One rule runs through everything: **nobody sees another person's location until 
 
 ### Try it
 
-Open the live demo and log in with any shelter and role. The demo password is `dali2026`. It is public on purpose, because the app only holds fake data. Open two browser windows (for example one normal and one private) to play two shelters at once. The seeded cases are:
+Open the live demo. There is no login: use the shelter selector and the Volunteer / Coordinator toggle at the top of the sidebar to act as any shelter or role. The app only holds fake data. Open two browser windows (for example one normal and one private) to play two shelters at once. Alerts and waiting requests show up in the sidebar under "Needs your attention". The seeded cases are:
 
 | Case | Where to look |
 |---|---|
@@ -36,11 +36,37 @@ Open the live demo and log in with any shelter and role. The demo password is `d
 | A couple searching for each other. | Riverside and St. Mary's both get a reciprocal alert. Their request needs no photo. |
 | A person registered under an alias ("Mr. Blue"). | Riverside's open search for "Tomas Ferrer" finds him through marks and place, with a lower score. |
 | A person who will decline contact. | At Harbor View Hotel, open Requests and decline. At Riverside, Requests then "Sent by us" still says "Pending confirmation". |
-| A husband rescued later. | Keep Harbor View's dashboard open. As coordinator press "Demo: register late arrival". The alert for his wife's search appears within 15 seconds. |
+| A husband rescued later. | Keep Harbor View's window open on Home. As coordinator press "Demo: register late arrival". The alert for his wife's search appears in the sidebar within 15 seconds. |
 
 "Reset demo data" on the Coordinator page puts everything back.
 
-[TODO: add screenshots here: Dashboard, Register with voice (a yellow field), Search results, Requests, Coordinator.]
+### Screenshots
+
+**Home** is two large buttons. The sidebar holds the shelter selector, the role toggle, the navigation and everything that needs attention.
+
+![Home](docs/screenshots/home.png)
+
+**Register with voice.** Hold the big microphone and speak in any language. Green fields were heard clearly, yellow ones need a check, and the transcript is shown only while you review.
+
+![Register with voice](docs/screenshots/register-voice.png)
+
+**While recording** the button pulses softly and a live waveform follows the voice.
+
+![Recording](docs/screenshots/mic-recording.png)
+
+**Search results** show a score and plain reasons, never a name or a shelter.
+
+![Search results](docs/screenshots/search-results.png)
+
+**Requests.** The person decides. This one is for someone who needs assistance, so the coordinator decides for them.
+
+![Requests](docs/screenshots/requests.png)
+
+**Alerts in the sidebar.** New matches and waiting requests, with counts, always in view.
+
+![Sidebar alerts](docs/screenshots/sidebar-alerts.png)
+
+The photo in these screenshots is a neutral stand-in from a fake camera. All names are demo data.
 
 [TODO: add team names, DALI submission details and a demo video link, if any.]
 
@@ -52,13 +78,13 @@ Open the live demo and log in with any shelter and role. The demo password is `d
 - Matching on name, route, age, distinctive marks, height and hair, with plain-language reasons.
 - Group transfers as traces (buses, boats, agency moves).
 - Reciprocal search.
-- A consent flow for contact requests: photo, message, a detail only the family would know, accept or decline.
+- A consent flow for contact requests: photo, a short message, accept or decline.
 - A coordinator role: review queue, requests for minors and people who need assistance, group transfers.
-- Automatic alerts, with the dashboard polling every 15 seconds.
+- Automatic alerts, shown in the sidebar and refreshed every 15 seconds.
 
 ### What is simulated on purpose
 
-- **Login.** A shelter and role dropdown plus one shared password. There are no real accounts. This is a placeholder.
+- **Accounts.** There is no login and no password. The sidebar lets anyone pick a shelter and a role. This is a placeholder for real accounts.
 - **Email and SMS.** "Sending" saves a notification row, prints it to the server console and shows "Email sent to ..." in the UI. No provider is connected.
 - **Paper lists.** The "Import paper list" button says "Coming soon".
 
@@ -69,6 +95,7 @@ Open the live demo and log in with any shelter and role. The demo password is `d
 - **Agency integration.** Transport companies, school districts and care-home operators would send their passenger or resident lists to the coordinator's group-transfer screen automatically, instead of by hand.
 - **SMS and a phone line.** Families without a phone could call a number, speak, and get a reference code. The voice pipeline already turns speech into fields, so a call would feed the same search. Notifications would go out as SMS.
 - **Transport for reunification.** After an accepted contact, the two shelters could arrange a ride or a meeting point through the coordinator.
+- **Status changes (transferred, left).** Out of scope for this prototype. A registered person is simply listed at the shelter where they were registered, and nobody can mark them as transferred or left. How it would work: each person gets a status (present, transferred, left). Marking someone as transferred records the destination shelter, and it could be set automatically when a coordinator's group transfer already names them. The person then appears in the destination shelter's list, and their open searches and alerts follow them there. A person who has left stays in the history but is no longer offered as a match. Every change would go into an audit log. Consent would carry on across a move: a pending contact request would be re-routed to the shelter where the person now is, and nothing about the new shelter would be shown until they accept.
 - **Working offline.** Shelters lose connectivity. A local-first version could keep registrations on the laptop and sync when the network returns. This app needs a connection.
 
 ## Design
@@ -113,7 +140,7 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 ## Technical choices
 
 - **Backend:** Node.js with Express, plain JavaScript. **Database:** SQLite through `better-sqlite3`, one file, one `schema.sql`.
-- **Frontend:** React with Vite and React Router, one CSS file with variables. No TypeScript, no UI library, no state manager.
+- **Frontend:** React with Vite and React Router, one CSS file with variables. No TypeScript, no UI library, no state manager. Icons from `lucide-react`. The fonts (Figtree for the interface, Fraunces for the logo) are self-hosted through npm, so no visitor's browser contacts a third party.
 - **Matching:** one readable file, `server/matching.js`, with pure functions: Jaro-Winkler on name tokens, route similarity plus group transfers, age, marks keywords, height and hair. Missing data is never penalised, and a lone matching field cannot look like a certain match.
 - **Voice:** the browser records with `MediaRecorder`; OpenAI transcribes; DeepSeek extracts the fields through a forced function call with a JSON schema (its thinking mode is switched off, because DeepSeek rejects a forced tool choice in thinking mode). The server validates every value against the form's allowed values, so a wrong answer from the model never reaches the form unchecked.
 - **Sessions:** `express-session` with the default in-memory store. Simple, but sessions are lost on restart and only one process can run.
@@ -131,7 +158,8 @@ SQLite and matching in JavaScript are easy to read and run anywhere, but they wo
 
 - A person who was declined could register again under a different name at another shelter and look like a new searcher. The "dropped after decline" rule works per searcher and per found person, so without identity documents we cannot fully prevent this.
 - Registering the same person twice at different shelters is not detected.
-- The demo login is a placeholder, and anyone who has the shared password can pick any role.
+- There is no authentication. Anyone can act as any shelter or as the coordinator, so the privacy rules protect against honest mistakes, not against someone who deliberately switches shelter or role. Real use needs real accounts.
+- There are no status changes, so a person who moves on stays listed at the shelter where they were registered. An accepted reunion could send a family to a shelter the person has already left.
 - Voice input has so far been tested only against mocked OpenAI and DeepSeek services. [TODO: add real-speech test results.]
 
 ## How to run locally
@@ -168,7 +196,6 @@ Run the tests with `npm test --prefix server`.
 |---|---|
 | `PORT` | Port to listen on (default 3100). |
 | `SESSION_SECRET` | Generated by `npm run setup`. |
-| `DEMO_PASSWORD` | The shared demo password. |
 | `DEEPSEEK_API_KEY`, `DEEPSEEK_MODEL` | Field extraction from speech (default model `deepseek-flash`). |
 | `OPENAI_API_KEY`, `OPENAI_TRANSCRIBE_MODEL` | Speech transcription. |
 

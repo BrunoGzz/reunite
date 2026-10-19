@@ -5,7 +5,7 @@ export function emptyPerson() {
   return {
     name: '', name_is_alias: false, sex: 'unknown', age: '', height: 'unknown', hair_color: '',
     marks: '', languages: '', last_place: '', last_seen_day: '', last_seen_part: '',
-    arrival_method: '', moved_by: '', travelling_with: '', needs_assistance: false,
+    arrival_method: '', needs_assistance: false,
   }
 }
 
@@ -13,7 +13,7 @@ const HAIR = ['black', 'brown', 'blond', 'red', 'gray', 'white', 'other']
 const ARRIVALS = ['bus', 'boat', 'own car', 'ambulance', 'agency transfer', 'other']
 
 // mode "person": everything. "target": a person being searched for. "minimal": the basics only.
-const DETAIL_FIELDS = ['height', 'hair_color', 'languages', 'last_seen_day', 'last_seen_part', 'arrival_method', 'moved_by', 'travelling_with']
+const DETAIL_FIELDS = ['height', 'hair_color', 'languages', 'last_seen_day', 'last_seen_part', 'arrival_method']
 
 export default function PersonForm({ values, onChange, doubtful = [], heard = [], mode = 'person' }) {
   const [moreOpen, setMoreOpen] = useState(false)
@@ -119,16 +119,6 @@ export default function PersonForm({ values, onChange, doubtful = [], heard = []
                 {ARRIVALS.map((a) => <option key={a} value={a}>{a}</option>)}
               </select>
               {hint('arrival_method')}
-            </label>
-          </div>
-          <div className="row">
-            <label className={'field grow' + flag('moved_by')}>Who moved them
-              <input value={values.moved_by} onChange={set('moved_by')} placeholder="Agency, driver, school..." />
-              {hint('moved_by')}
-            </label>
-            <label className={'field grow' + flag('travelling_with')}>Travelling with
-              <input value={values.travelling_with} onChange={set('travelling_with')} />
-              {hint('travelling_with')}
             </label>
           </div>
         </details>

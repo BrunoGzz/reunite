@@ -38,35 +38,38 @@ Privacy rule that runs through everything: **nobody sees another person's locati
 
 ## 4. Screens
 
-Navigation (top bar): Dashboard, Register, Search, Requests, People here, and Coordinator (only for the coordinator role). Shelter name and role are shown at the right, with a Log out link.
+There is no login. The app opens straight away, and a left sidebar (like a social app) holds everything around the work:
 
-### 4.1 Login
+- the logo,
+- a shelter selector ("Working at") and a Volunteer / Coordinator toggle, so the same browser can act as any shelter and role,
+- navigation: Home, Requests (with a count of waiting requests), People here, and Coordinator (only when the role is Coordinator),
+- a "Needs your attention" section with a count: new alerts ("Possible match found for your search for Maria Lopez") and pending contact requests ("1 person wants to contact someone here"). Each item opens the place where the volunteer can act. Empty state: "You are all caught up."
 
-- What the user sees: a shelter dropdown, a role dropdown (Volunteer / Coordinator), a password field. A small note: "Demo login. Real accounts are not part of this prototype."
-- Main action: "Log in".
-- Simulated: one fixed password from `DEMO_PASSWORD`.
+Register and Search are not in the navigation. They are reached from Home. Changing the shelter or the role returns to Home, so no page keeps showing another shelter's data. The sidebar polls every 15 seconds (no websockets).
 
-### 4.2 Dashboard
+### 4.1 Choosing a shelter and role (no login)
 
-Answers one question at a glance: "Is there anything new I need to do right now?"
+- What the user sees: the shelter selector and the role toggle at the top of the sidebar. The first visit starts as a volunteer at the first shelter.
+- The choice is kept in the server session, so alerts, requests and photo access still work per shelter and per role.
+- There is no password and no authentication at all. This is a prototype for fake data; anyone can act as any shelter or as the coordinator. See "Privacy rules" for what that means.
 
-- Top block, large: "Needs your attention" with a list of
-  - new alerts ("Possible match found for your search for Maria Lopez"),
-  - pending contact requests for this shelter ("1 person wants to contact someone here").
-  Each item is a big row that links straight to the action.
-- Below, smaller: "Open searches from this shelter" (name sought, how long open, number of possible matches).
-- Empty state: "Nothing needs your attention. Register someone or start a search with the microphone."
-- Polls every 15 seconds. No websockets.
-- Main action: open the first item needing attention. Two big buttons at the top right: "Register someone" and "Search for someone".
+### 4.2 Home
+
+Two large buttons and nothing else:
+
+- "Register a person": "Add someone who just arrived at this shelter, so their family can find them."
+- "Search for someone": "Look for a family member who may be in another shelter."
+
+Each has an icon, a title and a one-line description. The question "is there anything new I need to do?" is answered by the sidebar, which is always visible.
 
 ### 4.3 Register
 
-- What the user sees: a very large microphone button at the top ("Hold to speak"), the form below.
+- What the user sees: a very large round microphone button at the top ("Hold to speak"), with a soft pulse and a live waveform (an `AnalyserNode` on the same microphone stream) while recording, and the form below.
 - Main action: hold the mic and talk, then press "Save".
 - Voice: push to talk. On release the audio goes to the backend, is transcribed, and the AI returns the fields.
 - Field states:
-  - said clearly: normal
-  - doubtful (for example a badly transcribed name): yellow highlight
+  - said clearly: soft green
+  - doubtful (for example a badly transcribed name): yellow highlight with "Please check"
   - empty: plain empty input
 - The AI never invents. What was not said stays empty.
 - The original transcript and the detected language are shown above the form ("Heard in Spanish: ...") only while the volunteer reviews. The transcript is never saved, because it can contain things the form deliberately leaves out.
@@ -74,7 +77,7 @@ Answers one question at a glance: "Is there anything new I need to do right now?
 - Hold the Space bar to record when nothing is focused (not a field, button, checkbox or select), so typing is never affected.
 - The name can be fixed by typing. Alias or "unknown" is accepted. Checkbox "This may not be their real name".
 - If voice is not configured, the mic button shows "Voice input is not configured" and the form works as normal.
-- On save: the matching runs against all open searches (see 5.4). Confirmation screen: "Saved. Registered Maria L. If someone is looking for her, you will see an alert on the dashboard."
+- On save: the matching runs against all open searches (see 5.4). Confirmation screen: "Saved. Registered Maria L. If someone is looking for her, you will see an alert in the sidebar."
 - Under 18 sets the minor flag automatically, shown as a visible label.
 
 Fields (people):
@@ -88,11 +91,11 @@ Fields (people):
 - Languages spoken
 - Last known place before evacuating (free text with autocomplete from places already in the database, so there are no ten versions of the same school)
 - Approximate time: day and part of day (morning, afternoon, evening, night)
-- How they arrived: bus, boat, own car, ambulance, agency transfer, other; and who moved them if known
-- Travelling with
+- How they arrived: bus, boat, own car, ambulance, agency transfer, other
 - Flag "Needs assistance to decide" (for example dementia)
-- Status: present, transferred (to which shelter), left
 - Current shelter: taken from the session
+
+There is no status field (present, transferred, left). Everyone registered is simply listed; changing where someone is would be a later feature (see the README).
 
 ### 4.4 Search
 
@@ -114,14 +117,13 @@ Fields (people):
 
 - Webcam photo of the searcher (getUserMedia), with an option to upload a file instead. Required, except when the match is reciprocal and both searches score 85% or more against each other (see 5.2).
 - Short message from the searcher.
-- Optional detail only the family would know (for example "our dog is called Toby").
 - Main action: "Send request". Afterwards the result shows "Pending confirmation".
 
 ### 4.6 Requests
 
 Two tabs, kept simple.
 
-- "Waiting for you" (requests that arrived at this shelter): each card shows the photo, the message and the family detail, with two big buttons: Accept and Decline. The volunteer shows this to the person. Message at the top: "Show this screen to the person. They decide."
+- "Waiting for you" (requests that arrived at this shelter): each card shows the photo and the message, with two big buttons: Accept and Decline. The volunteer shows this to the person. Message at the top: "Show this screen to the person. They decide."
 - "Sent by us": a list of requests this shelter sent, with status. Declined and not-answered both display "Pending confirmation". A searcher never sees "declined".
 - After Accept, both sides see a reunion card: the other shelter's name, address, phone and reunification instructions.
 
@@ -134,10 +136,10 @@ What happens on each decision:
 
 ### 4.7 People here
 
-- Table of everyone registered at this shelter: name (or "Unknown"), sex, age, arrived, status, flags.
-- Search box on top. Small actions per row: mark as left, mark as transferred (choose shelter).
+- A simple list of everyone registered at this shelter: name (or "Unknown"), sex, age, when they were registered, and tags (Alias, Minor, Needs assistance).
+- A search box on top. No actions per row: status changes (transferred, left) are out of scope.
 - A discreet "Import paper list" button shows "Coming soon".
-- Empty state: "Nobody registered yet. Use Register to add the first person."
+- Empty state: "Nobody registered yet. Go to Home and choose \"Register a person\" to add the first one."
 
 ### 4.8 Coordinator
 
@@ -168,6 +170,7 @@ Rules:
 - If sex is known on both sides and differs, the score is 0.
 - If a field is missing on either side, that component is skipped and the weights are shared among the remaining ones. Missing data is never penalised.
 - SQL pre-filters by sex and age range when present, so we do not compare against everyone.
+- The weights above did not change when "who moved them", "travelling with" and the status field were removed: none of them was ever part of the score. All registered people are candidates.
 
 ### 5.2 Reciprocal
 
@@ -204,6 +207,7 @@ Every time a person is registered, they are compared with all open searches.
 - Declined and unanswered look identical to the searcher. After a decline, repeat requests from the same searcher to the same person (any search) are dropped without trace on the receiving side. Limitation: someone who registers again under a different name at another shelter looks like a new searcher; without identity documents this cannot be fully prevented. The Search screen therefore lets the volunteer pick an already registered searcher instead of creating a new one.
 - Photos live in `server/data/photos/` with random names, are never served statically, and are readable only via `GET /api/photos/:id` by the receiving shelter or the coordinator. They are deleted when the request is decided.
 - No audio is stored. No immigration status field exists anywhere.
+- Because there is no login, these rules protect against honest mistakes, not against someone who deliberately switches shelter or role in the sidebar. Real use would need real accounts, with the shelter and the role taken from the account.
 
 ## 6. Data model
 
@@ -231,19 +235,15 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - last_seen_day (date, nullable)
 - last_seen_part (morning, afternoon, evening, night, nullable)
 - arrival_method (bus, boat, own car, ambulance, agency transfer, other)
-- moved_by (text)
-- travelling_with (text)
 - is_minor (0/1, set automatically from age)
 - needs_assistance (0/1)
-- status (present, transferred, left)
-- transferred_to_shelter_id (nullable)
 - created_at
 
 **searches**
 - id
 - shelter_id (the shelter where the search was created)
 - searcher_person_id (the person looking, a row in people)
-- target fields, same as the description fields of people: name, sex, age, height, hair_color, marks, languages, last_place, last_seen_day, last_seen_part, arrival_method, moved_by, travelling_with
+- target fields, same as the description fields of people: name, sex, age, height, hair_color, marks, languages, last_place, last_seen_day, last_seen_part, arrival_method
 - email (nullable)
 - email_opt_in (0/1)
 - status (open, closed)
@@ -281,7 +281,6 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - to_shelter_id
 - routed_to (shelter or coordinator)
 - message
-- family_detail (nullable)
 - photo_file (nullable, random file name, cleared on decision)
 - status (pending, accepted, declined)
 - created_at
@@ -302,17 +301,21 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 
 - Backend: Node.js, Express, plain JavaScript. `better-sqlite3`, one file in `server/data/`.
 - Frontend: React, Vite, React Router. One CSS file with variables. No Tailwind, no component library, no state manager.
-- Session: `express-session`, in-memory store.
+- Session: `express-session`, in-memory store. It only remembers which shelter and role the browser chose.
 - Production: Express serves the React build and the API in one process. PM2 keeps it alive, nginx reverse-proxies `dali.bruno.com.es` with a certbot certificate. I will ask before touching any of these.
-- Simulated on purpose: login, email and SMS, paper list import ("Coming soon"). Witness sightings appear only in the README as a next step.
+- Simulated on purpose: email and SMS, paper list import ("Coming soon"). There is no authentication. Witness sightings and status changes appear only in the README as next steps.
 
 ## 8. Visual design
 
-- Light background, system font, one accent colour, a lot of space.
-- Big microphone button. Big main actions, quiet secondary ones.
-- Short plain text. No technical words.
-- Yellow is used only for "please check this" (doubtful fields). The accent colour is used for the main action on each screen.
-- Useful empty states on every list.
+Warm and human, in the spirit of Airbnb. Not an executive dashboard.
+
+- Warm off-white background, white rounded cards (20 to 28 px radius), soft shadows, generous whitespace.
+- One strong accent, a deep rose (`#E31C5F`), for the main action on each screen, the microphone, the active navigation item and the counts. Dark neutral for secondary emphasis.
+- Fonts, self-hosted through npm so no visitor's browser contacts a third party: Fraunces (a soft serif) for the logo wordmark only, and Figtree for the interface.
+- Icons from `lucide-react`.
+- Yellow means "please check this" (doubtful fields). Soft green means "heard clearly". Nothing else uses those colours.
+- Big microphone button (224 px), big main actions, quiet secondary ones. The pulse respects reduced-motion settings.
+- Short plain text, no technical words. Useful empty states on every list.
 
 ## 9. Demo data
 
@@ -329,10 +332,8 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 
 ## 10. Decisions I made that you may want to change
 
-- The coordinator is tied to a shelter in the demo login, but sees everything.
+- The role toggle is available to everyone: a coordinator is just a role chosen in the sidebar, and it sees everything.
 - Last place is free text with autocomplete from existing values; there is no separate places table.
 - The searcher is stored as a normal row in `people`, so reciprocal detection is a simple lookup.
 - Match `state` is a single column instead of separate tables for review and alerts.
-- Alerts for a shelter appear in notifications and on the dashboard; the dashboard is the only place to act on them.
-
-Waiting for your review before starting the backend.
+- Alerts and pending requests live in the sidebar. Home no longer lists open searches, so an alert is the way back to a search's results.

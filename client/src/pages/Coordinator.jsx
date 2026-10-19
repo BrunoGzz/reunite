@@ -33,7 +33,7 @@ export default function Coordinator() {
 
   async function lateArrival() {
     await post('/api/coordinator/demo/late-arrival')
-    setNote('Tom Whitaker was registered at St. Mary\'s. His wife\'s shelter (Harbor View Hotel) now has an alert on its dashboard.')
+    setNote('Tom Whitaker was registered at St. Mary\'s. His wife\'s shelter (Harbor View Hotel) will see an alert in its sidebar within 15 seconds.')
     load()
   }
 

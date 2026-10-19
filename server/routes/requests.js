@@ -25,7 +25,7 @@ router.post('/matches/:id/request', upload.single('photo'), (req, res) => {
   const photo = req.file && req.file.mimetype.startsWith('image/') ? req.file : null
   if (!photo && needsPhoto(match)) return res.status(400).json({ error: 'Please take or upload a photo.' })
 
-  const id = createRequest({ match, message: req.body.message, familyDetail: req.body.familyDetail, photo })
+  const id = createRequest({ match, message: req.body.message, photo })
   res.json({ id })
 })
 
@@ -33,7 +33,7 @@ router.post('/matches/:id/request', upload.single('photo'), (req, res) => {
 router.get('/requests', (req, res) => {
   const isCoordinator = req.session.role === 'coordinator'
   const incoming = db.prepare(`
-    SELECT r.id, r.message, r.family_detail, r.photo_file IS NOT NULL AS has_photo, r.routed_to, r.created_at,
+    SELECT r.id, r.message, r.photo_file IS NOT NULL AS has_photo, r.routed_to, r.created_at,
       target.name AS person_name, target.is_minor, target.needs_assistance, searcher.name AS searcher_name
     FROM contact_requests r
     JOIN matches m ON m.id = r.match_id

@@ -11,7 +11,7 @@ const HAIR = ['black', 'brown', 'blond', 'red', 'gray', 'white', 'other']
 const ARRIVALS = ['bus', 'boat', 'own car', 'ambulance', 'agency transfer', 'other']
 const PARTS = ['morning', 'afternoon', 'evening', 'night']
 
-const TEXT_FIELDS = ['name', 'marks', 'languages', 'last_place', 'moved_by', 'travelling_with']
+const TEXT_FIELDS = ['name', 'marks', 'languages', 'last_place']
 const CHOICES = {
   sex: ['male', 'female'],
   height: ['short', 'medium', 'tall'],
@@ -87,8 +87,6 @@ function buildTool(mode) {
     last_seen_day: fieldSchema(nullable('string')),
     last_seen_part: fieldSchema(choice(CHOICES.last_seen_part)),
     arrival_method: fieldSchema(choice(CHOICES.arrival_method)),
-    moved_by: fieldSchema(nullable('string')),
-    travelling_with: fieldSchema(nullable('string')),
   }
   if (mode === 'person') properties.needs_assistance = fieldSchema(nullable('boolean'))
   return {

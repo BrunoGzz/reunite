@@ -13,7 +13,7 @@ export const LATE_ARRIVAL = {
   person: {
     name: 'Tom Whitaker', sex: 'male', age: 58, height: 'tall', hair_color: 'gray',
     marks: 'gray beard, bandaged left hand', languages: 'English', last_place: 'Pelican Street',
-    last_seen_day: DAY, last_seen_part: 'evening', arrival_method: 'boat', moved_by: 'volunteer rescue boat',
+    last_seen_day: DAY, last_seen_part: 'evening', arrival_method: 'boat',
   },
 }
 
@@ -96,8 +96,8 @@ export function seed() {
   for (const s of [motherSearch, daughterSearch, sisterSearch, victorSearch, wifeSearch]) runSearch(s)
 
   const found = (shelterId, data) => matchNewPerson(addPerson(data, shelterId))
-  found(riverside, { sex: 'male', age: 8, height: 'short', hair_color: 'brown', marks: 'red backpack', arrival_method: 'bus', moved_by: 'school bus', travelling_with: 'classmates' })
-  found(harbor, { name: 'Rosa Delgado', sex: 'female', age: 81, hair_color: 'white', marks: 'wheelchair, hearing aid', languages: 'Spanish', last_place: 'Sunrise Care Home', last_seen_day: DAY, last_seen_part: 'morning', arrival_method: 'agency transfer', moved_by: 'Coastal Care Transport', needs_assistance: true })
+  found(riverside, { sex: 'male', age: 8, height: 'short', hair_color: 'brown', marks: 'red backpack', arrival_method: 'bus' })
+  found(harbor, { name: 'Rosa Delgado', sex: 'female', age: 81, hair_color: 'white', marks: 'wheelchair, hearing aid', languages: 'Spanish', last_place: 'Sunrise Care Home', last_seen_day: DAY, last_seen_part: 'morning', arrival_method: 'agency transfer', needs_assistance: true })
   found(stMarys, { name: 'Mr. Blue', name_is_alias: true, sex: 'male', age: 46, marks: 'tattoo of an anchor on right arm', last_place: 'Main Street Church', last_seen_day: DAY, arrival_method: 'own car' })
   found(harbor, { name: 'Maria Santos', sex: 'female', age: 36, hair_color: 'black', last_place: 'Harbor Mall', last_seen_day: DAY, arrival_method: 'bus' })
 
@@ -107,7 +107,7 @@ export function seed() {
 
   // The sought person at Harbor View has a pending request waiting, ready to be declined live.
   const mariaMatch = db.prepare('SELECT m.* FROM matches m WHERE m.search_id = ? ORDER BY m.score DESC').get(victorSearch.id)
-  createRequest({ match: mariaMatch, message: 'Please let me know you are safe.', familyDetail: 'The name of our first dog', photo: null })
+  createRequest({ match: mariaMatch, message: 'Please let me know you are safe.', photo: null })
 }
 
 export function resetDemo() {

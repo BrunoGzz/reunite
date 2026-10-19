@@ -17,14 +17,14 @@ test.after(() => server.close())
 
 const json = { 'content-type': 'application/json' }
 
-async function login(role, shelterId = 1, origin = base, extra = {}) {
-  const password = process.env.DEMO_PASSWORD || 'dali2026'
-  return fetch(`${origin}/api/login`, { method: 'POST', headers: { ...json, ...extra }, body: JSON.stringify({ shelterId, role, password }) })
+// There is no login: a client just chooses which shelter and role the session acts as.
+async function startSession(role, shelterId = 1, origin = base, extra = {}) {
+  return fetch(`${origin}/api/session`, { method: 'POST', headers: { ...json, ...extra }, body: JSON.stringify({ shelterId, role }) })
 }
 
 async function call(row, who) {
   const headers = { ...json }
-  if (who !== 'none') headers.cookie = (await login(who)).headers.getSetCookie()[0].split(';')[0]
+  if (who !== 'none') headers.cookie = (await startSession(who)).headers.getSetCookie()[0].split(';')[0]
   const body = row.body === undefined ? undefined : JSON.stringify(row.body)
   return fetch(base + '/api' + row.url, { method: row.method, headers, body })
 }
@@ -33,12 +33,10 @@ async function call(row, who) {
 const MISSING = 999999
 const ROWS = [
   { method: 'GET', pattern: '/shelters', url: '/shelters', none: 200, volunteer: 200, coordinator: 200 },
-  { method: 'POST', pattern: '/login', url: '/login', body: {}, none: 400, volunteer: 400, coordinator: 400 },
-  { method: 'POST', pattern: '/logout', url: '/logout', none: 200, volunteer: 200, coordinator: 200 },
+  { method: 'POST', pattern: '/session', url: '/session', body: {}, none: 400, volunteer: 400, coordinator: 400 },
   { method: 'GET', pattern: '/me', url: '/me', none: 401, volunteer: 200, coordinator: 200 },
   { method: 'GET', pattern: '/people', url: '/people', none: 401, volunteer: 200, coordinator: 200 },
   { method: 'POST', pattern: '/people', url: '/people', body: { name: 'Route Test', sex: 'male', age: 40 }, none: 401, volunteer: 200, coordinator: 200 },
-  { method: 'POST', pattern: '/people/:id/status', url: `/people/${MISSING}/status`, body: { status: 'left' }, none: 401, volunteer: 404, coordinator: 404 },
   { method: 'GET', pattern: '/places', url: '/places?q=lin', none: 401, volunteer: 200, coordinator: 200 },
   { method: 'POST', pattern: '/searches', url: '/searches', body: {}, none: 401, volunteer: 400, coordinator: 400 },
   { method: 'GET', pattern: '/searches', url: '/searches', none: 401, volunteer: 200, coordinator: 200 },
@@ -75,7 +73,7 @@ test('every registered route is in the table', () => {
 test('notifications can only be marked read by their own shelter or the coordinator', async () => {
   const forShelter2 = db.prepare('SELECT id FROM notifications WHERE shelter_id = 2 AND is_read = 0').get().id
   const forCoordinator = db.prepare('SELECT id FROM notifications WHERE shelter_id IS NULL AND is_read = 0').get().id
-  const cookie = async (role, shelter) => (await login(role, shelter)).headers.getSetCookie()[0].split(';')[0]
+  const cookie = async (role, shelter) => (await startSession(role, shelter)).headers.getSetCookie()[0].split(';')[0]
   const mark = async (id, who) => (await fetch(`${base}/api/notifications/${id}/read`, { method: 'POST', headers: { cookie: who } })).status
 
   assert.equal(await mark(forShelter2, await cookie('volunteer', 1)), 404) // another shelter
@@ -94,6 +92,24 @@ for (const row of ROWS) {
   })
 }
 
+test('choosing a shelter and role needs no password, and rejects nonsense', async () => {
+  const post = (body) => fetch(`${base}/api/session`, { method: 'POST', headers: json, body: JSON.stringify(body) })
+  const ok = await post({ shelterId: 2, role: 'coordinator' })
+  assert.equal(ok.status, 200)
+  assert.deepEqual(await ok.json(), { shelterId: 2, shelterName: "St. Mary's Community Center", role: 'coordinator' })
+  assert.equal((await post({ shelterId: MISSING, role: 'volunteer' })).status, 400)
+  assert.equal((await post({ shelterId: 1, role: 'admin' })).status, 400)
+  assert.equal((await post({ role: 'volunteer' })).status, 400)
+})
+
+test('the session remembers the chosen shelter and role, and can be switched', async () => {
+  const cookie = (await startSession('volunteer', 1)).headers.getSetCookie()[0].split(';')[0]
+  const me = async () => (await fetch(`${base}/api/me`, { headers: { cookie } })).json()
+  assert.equal((await me()).shelterId, 1)
+  await fetch(`${base}/api/session`, { method: 'POST', headers: { ...json, cookie }, body: JSON.stringify({ shelterId: 3, role: 'coordinator' }) })
+  assert.deepEqual(await me(), { shelterId: 3, shelterName: 'Harbor View Hotel (emergency housing)', role: 'coordinator' })
+})
+
 test('API responses are never cached and carry security headers', async () => {
   const res = await fetch(`${base}/api/shelters`)
   assert.equal(res.headers.get('cache-control'), 'no-store')
@@ -109,12 +125,12 @@ test('in production the session cookie is secure, httpOnly and sameSite=lax, and
   process.env.NODE_ENV = before
   try {
     const origin = `http://127.0.0.1:${prod.address().port}`
-    const viaProxy = await login('volunteer', 1, origin, { 'x-forwarded-proto': 'https' })
+    const viaProxy = await startSession('volunteer', 1, origin, { 'x-forwarded-proto': 'https' })
     const cookie = viaProxy.headers.getSetCookie()[0]
     assert.match(cookie, /HttpOnly/i)
     assert.match(cookie, /Secure/i)
     assert.match(cookie, /SameSite=Lax/i)
-    const direct = await login('volunteer', 1, origin) // plain http, no proxy header
+    const direct = await startSession('volunteer', 1, origin) // plain http, no proxy header
     assert.equal(direct.headers.getSetCookie().length, 0)
   } finally {
     prod.close()

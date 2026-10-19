@@ -32,7 +32,6 @@ export default function RequestCard({ request, onDecided }) {
         <div className="summary">Someone wants to contact {request.person_name || 'a person here'}</div>
         <p>From: {request.searcher_name || 'a family member'}</p>
         {request.message && <p>"{request.message}"</p>}
-        {request.family_detail && <p className="muted">Only the family would know: {request.family_detail}</p>}
         {request.routed_to === 'coordinator' && (
           <p>{request.is_minor ? <span className="tag">Minor</span> : null} {request.needs_assistance ? <span className="tag">Needs assistance</span> : null} The coordinator decides for this person.</p>
         )}

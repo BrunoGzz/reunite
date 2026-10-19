@@ -12,7 +12,7 @@ export default function Search() {
   return id ? <SearchResults id={id} /> : <NewSearch />
 }
 
-// An existing search, opened from the dashboard or an alert.
+// An existing search, opened from an alert in the sidebar.
 function SearchResults({ id }) {
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
@@ -79,6 +79,7 @@ function NewSearch() {
   return (
     <>
       <h1>Search for someone</h1>
+      <p className="subtitle">Describe the person you are looking for.</p>
       <VoiceButton mode="target" onResult={fill} />
       <Spoken spoken={spoken} />
       <h2>Who are you looking for?</h2>
