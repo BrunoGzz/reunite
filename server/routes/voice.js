@@ -1,8 +1,7 @@
-// Voice input: audio -> OpenAI transcription -> Anthropic extraction -> form fields.
+// Voice input: audio -> OpenAI transcription -> DeepSeek extraction -> form fields.
 // The audio stays in memory. Neither audio nor transcript text is saved or logged.
 import { Router } from 'express'
 import multer from 'multer'
-import Anthropic from '@anthropic-ai/sdk'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 } })
@@ -21,7 +20,7 @@ const CHOICES = {
   arrival_method: ARRIVALS,
 }
 
-const isConfigured = () => !!(process.env.OPENAI_API_KEY && process.env.ANTHROPIC_API_KEY)
+const isConfigured = () => !!(process.env.OPENAI_API_KEY && process.env.DEEPSEEK_API_KEY)
 
 router.get('/voice/status', (req, res) => res.json({ configured: isConfigured() }))
 
@@ -57,6 +56,7 @@ async function transcribe(file) {
     method: 'POST',
     headers: { Authorization: `Bearer ${process.env.OPENAI_API_KEY}` },
     body: form,
+    signal: AbortSignal.timeout(30000),
   })
   if (!res.ok) throw Object.assign(new Error('transcription request failed'), { status: res.status })
   const data = await res.json()
@@ -94,7 +94,7 @@ function buildTool(mode) {
   return {
     name: 'fill_form',
     description: 'Fill in the form describing one person, using only what was said.',
-    input_schema: {
+    parameters: {
       type: 'object',
       properties: { ...properties, language: { type: 'string', description: 'Language the speaker used, in English, for example "Spanish".' } },
       required: [...Object.keys(properties), 'language'],
@@ -121,20 +121,39 @@ function buildPrompt(mode) {
   ].join('\n')
 }
 
+// DeepSeek speaks the OpenAI chat completions format. The output is forced through function calling.
 async function extractFields(transcript, mode) {
-  const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+  const base = process.env.DEEPSEEK_BASE_URL || 'https://api.deepseek.com'
   const tool = buildTool(mode)
-  const message = await client.messages.create({
-    model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-5-5',
-    max_tokens: 1024,
-    system: buildPrompt(mode),
-    tools: [tool],
-    tool_choice: { type: 'tool', name: tool.name },
-    messages: [{ role: 'user', content: `Transcript:\n"""\n${transcript}\n"""` }],
+  const res = await fetch(`${base}/chat/completions`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY}`, 'content-type': 'application/json' },
+    body: JSON.stringify({
+      model: process.env.DEEPSEEK_MODEL || 'deepseek-flash',
+      messages: [
+        { role: 'system', content: buildPrompt(mode) },
+        { role: 'user', content: `Transcript:\n"""\n${transcript}\n"""` },
+      ],
+      tools: [{ type: 'function', function: tool }],
+      tool_choice: { type: 'function', function: { name: tool.name } },
+      // Thinking mode is on by default and rejects a forced tool choice with a 400 error.
+      thinking: { type: 'disabled' },
+      temperature: 0,
+      max_tokens: 1024,
+    }),
+    signal: AbortSignal.timeout(30000),
   })
-  const block = message.content.find((b) => b.type === 'tool_use')
-  if (!block) throw new Error('no tool output')
-  return normalizeFields(block.input, mode)
+  if (!res.ok) throw Object.assign(new Error('extraction request failed'), { status: res.status })
+  const data = await res.json()
+  const call = data.choices && data.choices[0] && data.choices[0].message.tool_calls && data.choices[0].message.tool_calls[0]
+  if (!call || call.function.name !== tool.name) throw new Error('no tool output')
+  let args
+  try {
+    args = JSON.parse(call.function.arguments)
+  } catch {
+    throw new Error('tool output was not valid JSON') // do not pass the parser's message on: it quotes the text
+  }
+  return normalizeFields(args, mode)
 }
 
 function capitalize(text) {

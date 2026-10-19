@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 
 process.env.REUNITE_DB = ':memory:'
 process.env.OPENAI_API_KEY = '' // voice stays "not configured" and never calls out
-process.env.ANTHROPIC_API_KEY = ''
+process.env.DEEPSEEK_API_KEY = ''
 const { default: db } = await import('./db.js')
 const { createApp, routers } = await import('./app.js')
 const { seed } = await import('./seed.js')

@@ -24,6 +24,6 @@ if (/^SESSION_SECRET=\s*$/m.test(text)) {
 fs.writeFileSync(envPath, text)
 fs.chmodSync(envPath, 0o600)
 
-const empty = text.split('\n').filter((l) => /^(ANTHROPIC_API_KEY|OPENAI_API_KEY)=\s*$/.test(l)).map((l) => l.split('=')[0])
+const empty = text.split('\n').filter((l) => /^(DEEPSEEK_API_KEY|OPENAI_API_KEY)=\s*$/.test(l)).map((l) => l.split('=')[0])
 console.log('.env is private (mode 600).')
 if (empty.length) console.log(`Still empty (voice input will be off): ${empty.join(', ')}`)
