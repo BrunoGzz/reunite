@@ -9,7 +9,7 @@ import auth from './routes/auth.js'
 import people from './routes/people.js'
 import searches from './routes/searches.js'
 import requests from './routes/requests.js'
-import attention from './routes/attention.js'
+import badges from './routes/badges.js'
 import review from './routes/review.js'
 import demo from './routes/demo.js'
 import voice from './routes/voice.js'
@@ -17,7 +17,7 @@ import voice from './routes/voice.js'
 const here = path.dirname(fileURLToPath(import.meta.url))
 
 // Every API router. The routes test walks this list to make sure each route is covered.
-export const routers = { auth, people, searches, requests, attention, review, demo, voice }
+export const routers = { auth, people, searches, requests, badges, review, demo, voice }
 
 export function createApp() {
   const production = process.env.NODE_ENV === 'production'
@@ -56,7 +56,7 @@ export function createApp() {
     if (!req.session.shelterId) return res.status(401).json({ error: 'Please log in.' })
     next()
   })
-  for (const router of [people, searches, requests, attention, review, demo, voice]) app.use('/api', router)
+  for (const router of [people, searches, requests, badges, review, demo, voice]) app.use('/api', router)
 
   // In production the React build is served from here too.
   const dist = path.join(here, '..', 'client', 'dist')

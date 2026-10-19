@@ -5,8 +5,9 @@ import Sidebar from './components/Sidebar.jsx'
 import Home from './pages/Home.jsx'
 import Register from './pages/Register.jsx'
 import Search from './pages/Search.jsx'
-import Attention from './pages/Attention.jsx'
-import Requests from './pages/Requests.jsx'
+import OurSearches from './pages/OurSearches.jsx'
+import Incoming from './pages/Incoming.jsx'
+import Review from './pages/Review.jsx'
 import People from './pages/People.jsx'
 
 export default function App() {
@@ -36,10 +37,12 @@ export default function App() {
         <Route index element={<Home />} />
         <Route path="register" element={<Register />} />
         <Route path="search" element={<Search />} />
+        <Route path="searches" element={<OurSearches />} />
         <Route path="searches/:id" element={<Search />} />
-        <Route path="attention" element={<Attention />} />
-        <Route path="requests" element={<Requests />} />
-        <Route path="review" element={<Navigate to="/attention" replace />} />
+        <Route path="incoming" element={<Incoming />} />
+        <Route path="review" element={<Review />} />
+        <Route path="attention" element={<Navigate to="/searches" replace />} />
+        <Route path="requests" element={<Navigate to="/incoming" replace />} />
         <Route path="people" element={<People />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Route>
@@ -47,15 +50,15 @@ export default function App() {
   )
 }
 
-// Sidebar plus the page. Polls what needs attention every 15 seconds so everything stays fresh.
+// Sidebar plus the page. Polls the sidebar counts every 15 seconds so everything stays fresh.
 function Layout({ me, shelters, onChoose }) {
-  const [attention, setAttention] = useState(null)
+  const [badges, setBadges] = useState(null)
   const navigate = useNavigate()
 
-  const refresh = () => get('/api/attention').then(setAttention).catch(() => {})
+  const refresh = () => get('/api/badges').then(setBadges).catch(() => {})
 
   useEffect(() => {
-    setAttention(null)
+    setBadges(null)
     refresh()
     const timer = setInterval(refresh, 15000)
     return () => clearInterval(timer)
@@ -69,9 +72,9 @@ function Layout({ me, shelters, onChoose }) {
 
   return (
     <div className="app">
-      <Sidebar me={me} shelters={shelters} onChoose={choose} attention={attention} refresh={refresh} />
+      <Sidebar me={me} shelters={shelters} onChoose={choose} badges={badges} refresh={refresh} />
       <main className="page">
-        <Outlet key={me.shelterId} context={{ attention, refresh, me }} />
+        <Outlet key={me.shelterId} context={{ badges, refresh, me }} />
       </main>
     </div>
   )

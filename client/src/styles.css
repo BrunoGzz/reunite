@@ -193,21 +193,6 @@ main > table { background: var(--card); border-radius: var(--radius); overflow: 
 .request .row { margin-top: 16px; }
 .request p { margin: 6px 0; }
 
-/* Open searches */
-.open-searches { margin-top: 56px; }
-.open-search { display: flex; align-items: center; gap: 20px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 20px 24px; margin: 12px 0; text-decoration: none; color: var(--text); box-shadow: var(--shadow-sm); transition: box-shadow 0.15s ease, transform 0.15s ease; }
-.open-search:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
-.open-main { flex: 1; min-width: 0; }
-.open-title { font-weight: 700; font-size: 18px; }
-.open-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; white-space: nowrap; }
-.open-score strong { color: var(--accent); font-size: 20px; }
-
-/* Needs attention page */
-.attn-row { display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 18px 22px; margin: 12px 0; box-shadow: var(--shadow-sm); text-decoration: none; color: var(--text); font-size: 18px; }
-a.attn-row:hover { box-shadow: var(--shadow-md); }
-.attn-icon { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }
-.attn-icon.big { width: 46px; height: 46px; }
-
 /* Demo tools: small and discreet, at the bottom of the sidebar */
 .demo-tools { margin-top: auto; border-top: 1px solid var(--line); padding-top: 14px; }
 .demo-buttons { display: flex; flex-wrap: wrap; gap: 6px 14px; }
@@ -216,9 +201,19 @@ a.attn-row:hover { box-shadow: var(--shadow-md); }
 .demo-buttons button.danger { color: var(--accent); font-weight: 600; }
 .demo-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); }
 
-/* Alerts: a title with one line under it, and greyed out once read */
-.attn-title { display: block; font-weight: 600; }
-.attn-sub { display: block; color: var(--muted); font-size: 16px; margin-top: 2px; }
-.attn-row.earlier { opacity: 0.62; border-left-color: #cfc6bd; box-shadow: none; background: #fdfbf9; }
-.attn-row.earlier .attn-icon { background: #efe9e3; color: var(--muted); }
-.attn-row.earlier .attn-title { font-weight: 500; }
+/* Our searches: one card per search */
+.search-card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 24px 28px; margin: 14px 0; box-shadow: var(--shadow-sm); }
+.search-card.new { border-left: 6px solid var(--accent); background: linear-gradient(90deg, var(--accent-soft), var(--card) 38%); box-shadow: var(--shadow-md); }
+.sc-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.sc-title { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; line-height: 1.3; }
+.sc-body { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 14px; margin-top: 14px; }
+.sc-score strong { color: var(--accent); font-size: 20px; }
+.sc-reunion { margin-top: 12px; }
+.sc-actions { margin-top: 16px; }
+.chip { display: inline-flex; align-items: center; gap: 6px; background: #f1ebe5; color: var(--text); border-radius: 20px; padding: 4px 14px 4px 10px; font-size: 14px; font-weight: 700; }
+.chip.possible { background: var(--accent-soft); color: var(--accent); }
+.chip.sent { background: #fff3d6; color: #8a5a00; }
+.chip.reunited { background: var(--good); color: #1d7a3a; }
+
+/* Count on the "People here" item: a plain number, not something to act on */
+.count.quiet { background: #efe9e3; color: var(--muted); }

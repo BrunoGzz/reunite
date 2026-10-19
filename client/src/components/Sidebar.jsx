@@ -1,13 +1,12 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Bell, Inbox, Users, Building2, ChevronDown } from 'lucide-react'
+import { Home, Search, UserSearch, ClipboardCheck, Users, Building2, ChevronDown } from 'lucide-react'
 import { post } from '../api.js'
 import Logo from './Logo.jsx'
 
-export default function Sidebar({ me, shelters, onChoose, attention, refresh }) {
-  const waiting = attention ? attention.pendingRequests : 0
-  // One count for everything on the "Needs attention" page: new alerts plus the review queue.
-  const toDo = attention ? attention.alerts.length + attention.reviewCount : 0
+export default function Sidebar({ me, shelters, onChoose, badges, refresh }) {
+  const b = badges || { searches: 0, incoming: 0, review: 0, people: 0 }
+  const count = (n) => n > 0 && <span className="count">{n}</span>
 
   return (
     <aside className="sidebar">
@@ -26,9 +25,10 @@ export default function Sidebar({ me, shelters, onChoose, attention, refresh }) 
 
       <nav className="nav">
         <NavLink to="/" end><Home size={20} />Home</NavLink>
-        <NavLink to="/attention"><Bell size={20} />Needs attention{toDo > 0 && <span className="count">{toDo}</span>}</NavLink>
-        <NavLink to="/requests"><Inbox size={20} />Requests{waiting > 0 && <span className="count">{waiting}</span>}</NavLink>
-        <NavLink to="/people"><Users size={20} />People here</NavLink>
+        <NavLink to="/searches"><Search size={20} />Our searches{count(b.searches)}</NavLink>
+        <NavLink to="/incoming"><UserSearch size={20} />Looking for people here{count(b.incoming)}</NavLink>
+        <NavLink to="/review"><ClipboardCheck size={20} />Needs review{count(b.review)}</NavLink>
+        <NavLink to="/people"><Users size={20} />People here{b.people > 0 && <span className="count quiet">{b.people}</span>}</NavLink>
       </nav>
 
       <DemoTools refresh={refresh} />

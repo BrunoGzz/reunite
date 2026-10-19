@@ -2,7 +2,7 @@ import { Router } from 'express'
 import multer from 'multer'
 import path from 'node:path'
 import db, { now, photoDir } from '../db.js'
-import { createRequest, acceptRequest, reunionForReceiver, deletePhoto, needsPhoto } from '../engine.js'
+import { createRequest, acceptRequest, reunionForReceiver, deletePhoto, needsPhoto, mayDecide } from '../engine.js'
 
 const router = Router()
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } })
@@ -29,35 +29,32 @@ router.post('/matches/:id/request', upload.single('photo'), (req, res) => {
   res.json({ id })
 })
 
-// Requests that arrived at this shelter and ones this shelter sent. Requests for minors and people who
-// need help deciding are under "Needs review" instead.
-router.get('/requests', (req, res) => {
-  const incoming = db.prepare(`
-    SELECT r.id, r.message, r.photo_file IS NOT NULL AS has_photo, r.routed_to, r.created_at,
-      target.name AS person_name, target.is_minor, target.needs_assistance, searcher.name AS searcher_name
+// Contact requests about people registered at this shelter: the ones waiting for a decision, and the ones that
+// were accepted (with where the family is). Requests for minors and people who need help deciding are under
+// "Needs review" instead. Declined requests are not listed: a request that was dropped after an earlier decline
+// is stored as declined too, and must never show up here.
+router.get('/incoming', (req, res) => {
+  const base = `
+    SELECT r.id, r.message, r.photo_file IS NOT NULL AS has_photo, r.routed_to, r.created_at, r.from_shelter_id,
+      r.from_shelter_id = r.to_shelter_id AS sender_here, target.name AS person_name, target.is_minor, target.needs_assistance, searcher.name AS searcher_name
     FROM contact_requests r
     JOIN matches m ON m.id = r.match_id
     JOIN people target ON target.id = m.person_id
     JOIN searches s ON s.id = m.search_id
     JOIN people searcher ON searcher.id = s.searcher_person_id
-    WHERE r.status = 'pending' AND r.routed_to = 'shelter' AND r.to_shelter_id = ?
-    ORDER BY r.created_at
-  `).all(req.session.shelterId)
-
-  const sent = db.prepare(`
-    SELECT r.id, r.status, r.created_at, s.name AS sought_name
-    FROM contact_requests r JOIN matches m ON m.id = r.match_id JOIN searches s ON s.id = m.search_id
-    WHERE r.from_shelter_id = ? ORDER BY r.created_at DESC
-  `).all(req.session.shelterId).map((r) => ({ ...r, status: r.status === 'accepted' ? 'accepted' : 'pending' }))
-
-  res.json({ incoming, sent })
+    WHERE r.routed_to = 'shelter' AND r.to_shelter_id = ?`
+  // Where a family is stays hidden until the request is accepted, so the sender's shelter is not sent with pending ones.
+  const pending = db.prepare(base + " AND r.status = 'pending' ORDER BY r.created_at").all(req.session.shelterId)
+    .map(({ from_shelter_id, ...rest }) => ({ ...rest, sender_here: !!rest.sender_here }))
+  const accepted = db.prepare(base + " AND r.status = 'accepted' ORDER BY r.decided_at DESC").all(req.session.shelterId)
+    .map(({ from_shelter_id, ...r }) => ({ ...r, sender_here: !!r.sender_here, reunion: { person_name: r.searcher_name, shelter: db.prepare('SELECT name, address, phone, instructions FROM shelters WHERE id = ?').get(from_shelter_id) } }))
+  res.json({ pending, accepted })
 })
 
 router.post('/requests/:id/decide', (req, res) => {
   const request = db.prepare("SELECT * FROM contact_requests WHERE id = ? AND status = 'pending'").get(req.params.id)
   if (!request) return res.status(404).json({ error: 'Request not found' })
-  const allowed = request.routed_to === 'review' || request.to_shelter_id === req.session.shelterId
-  if (!allowed) return res.status(403).json({ error: 'This request is not for you' })
+  if (!mayDecide(request, req.session.shelterId)) return res.status(403).json({ error: 'This request is not for you to decide' })
 
   const accept = req.body.decision === 'accept'
   deletePhoto(request.photo_file)
@@ -71,8 +68,7 @@ router.post('/requests/:id/decide', (req, res) => {
 router.get('/photos/:id', (req, res) => {
   const request = db.prepare('SELECT * FROM contact_requests WHERE id = ?').get(req.params.id)
   if (!request || !request.photo_file) return res.status(404).end()
-  const allowed = request.routed_to === 'review' || request.to_shelter_id === req.session.shelterId
-  if (!allowed) return res.status(403).end()
+  if (!mayDecide(request, req.session.shelterId)) return res.status(403).end()
   res.sendFile(path.join(photoDir, request.photo_file), { cacheControl: false, etag: false, lastModified: false })
 })
 

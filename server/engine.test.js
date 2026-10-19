@@ -15,26 +15,35 @@ const photoCount = () => fs.readdirSync(photoDir).filter((f) => f !== '.gitkeep'
 
 test('no photo needed when both searches score 85 or more', () => {
   const match = matchFor(searchFor('Marcus Hill'), 'Tanya Hill')
-  assert.equal(match.is_reciprocal, 1)
+  assert.equal(engine.isReciprocal(match), true)
+  assert.equal(engine.resultCard(match).reciprocal, true)
   assert.equal(engine.needsPhoto(match), false)
 })
 
 test('a plain search still needs a photo', () => {
   const match = matchFor(searchFor('Victor Santos'), 'Maria Santos')
+  assert.equal(engine.isReciprocal(match), false)
   assert.equal(engine.needsPhoto(match), true)
 })
 
-test('reciprocal between 70 and 85 keeps the badge but needs a photo', () => {
+test('below 85 in either direction there is no reciprocal badge and a photo is needed', () => {
   const anna = engine.addPerson({ name: 'Anna Lee', sex: 'female', age: 30 }, 1)
   const ben = engine.addPerson({ name: 'Ben Ray', sex: 'male', age: 30 }, 2)
-  // Ben describes Anna with the right name but the wrong age, so his side scores about 82.
-  engine.addSearch({ shelterId: 2, searcherPersonId: ben.id, target: { name: 'Anna Lee', sex: 'female', age: 20 } })
+  // Ben describes Anna with the right name but the wrong age, so his side scores about 82: not 85.
+  const bens = engine.addSearch({ shelterId: 2, searcherPersonId: ben.id, target: { name: 'Anna Lee', sex: 'female', age: 20 } })
   const hers = engine.addSearch({ shelterId: 1, searcherPersonId: anna.id, target: { name: 'Ben Ray', sex: 'male', age: 30 } })
   engine.runSearch(hers)
   const match = matchFor(hers, 'Ben Ray')
-  assert.equal(match.is_reciprocal, 1)
-  assert.ok(match.score >= 85)
+  assert.ok(match.score >= 85) // her side is strong
+  assert.equal(engine.isReciprocal(match), false)
+  assert.equal(engine.resultCard(match).reciprocal, false)
+  assert.equal(engine.resultCard(match).photo_required, true)
   assert.equal(engine.needsPhoto(match), true)
+
+  // Once his side describes her at 85 or more, it becomes reciprocal in both directions.
+  db.prepare('UPDATE searches SET age = 30 WHERE id = ?').run(bens.id)
+  assert.equal(engine.isReciprocal(match), true)
+  assert.equal(engine.needsPhoto(match), false)
 })
 
 test('accepting closes only the request search and the found person\'s own search', () => {
@@ -103,4 +112,24 @@ test('a different searcher is not affected by that decline', () => {
   const maria = person('Maria Santos')
   const waiting = db.prepare("SELECT COUNT(*) AS n FROM contact_requests WHERE status = 'pending' AND routed_to = 'shelter' AND to_shelter_id = ?").get(maria.shelter_id).n
   assert.equal(waiting, 1)
+})
+
+test('accepting marks the found person\'s own search as reunited too, with its own notice', () => {
+  // Marcus and Tanya search for each other. Tanya (St. Mary's) accepts Marcus's request (Riverside).
+  const marcusSearch = searchFor('Marcus Hill')
+  const tanyaSearch = searchFor('Tanya Hill')
+  const match = matchFor(marcusSearch, 'Tanya Hill')
+  const id = engine.createRequest({ match, message: 'Tanya!', photo: null })
+  engine.acceptRequest(db.prepare('SELECT * FROM contact_requests WHERE id = ?').get(id))
+
+  const status = (x) => db.prepare('SELECT status FROM searches WHERE id = ?').get(x.id).status
+  assert.equal(status(marcusSearch), 'closed')
+  assert.equal(status(tanyaSearch), 'closed')
+  // Her search now points at Marcus as connected, so her card can show where he is.
+  const hers = db.prepare("SELECT * FROM matches WHERE search_id = ? AND state = 'connected'").get(tanyaSearch.id)
+  assert.equal(hers.person_id, person('Marcus Hill').id)
+  // Each shelter gets one reunion notice, tied to its own search.
+  const notices = (shelter) => db.prepare("SELECT match_id FROM notifications WHERE kind = 'reunion' AND shelter_id = ?").all(shelter).map((n) => n.match_id)
+  assert.ok(notices(1).includes(match.id))
+  assert.ok(notices(2).includes(hers.id))
 })

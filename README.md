@@ -27,30 +27,38 @@ One rule runs through everything: **nobody sees another person's location until 
 
 ### Try it
 
-Open the live demo. There is no login: use the shelter selector at the top of the sidebar to act as any shelter. The app only holds fake data. Open two browser windows (for example one normal and one private) to play two shelters at once. Each item in the sidebar shows a count when something is waiting. The seeded cases are:
+Open the live demo. There is no login: use the shelter selector at the top of the sidebar to act as any shelter. The app only holds fake data. Open two browser windows (for example one normal and one private) to play two shelters at once. The sidebar is organised by direction: "Our searches" are the people this shelter is looking for, "Looking for people here" are families asking about people registered at this shelter. Each item shows a count when something is waiting. The seeded cases are:
 
 | Case | Where to look |
 |---|---|
-| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits in the review queue on "Needs attention". Approve it there and the mother's shelter (St. Mary's) gets an alert. |
-| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | The daughter's shelter (Riverside) has an alert. Send a contact request from it: it goes to the review queue instead of to the mother. |
-| A couple searching for each other. | Riverside and St. Mary's both get a reciprocal alert. Their request needs no photo. |
+| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits in "Needs review". Approve it there and the mother's search at St. Mary's lights up in "Our searches". |
+| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | At Riverside, "Our searches" shows the daughter's search highlighted. Send a contact request from its results: it goes to "Needs review" at the other shelters instead of to the mother, and never at Riverside itself. |
+| A couple searching for each other. | Riverside and St. Mary's both see their search highlighted with a Reciprocal badge. Both directions score 85% or more, so their request needs no photo. |
 | A person registered under an alias ("Mr. Blue"). | Riverside's open search for "Tomas Ferrer" finds him through marks and place, with a lower score. |
-| A person who will decline contact. | At Harbor View Hotel, open Requests and decline. At Riverside, Requests then "Sent by us" still says "Pending confirmation". |
-| A husband rescued later. | Keep Harbor View's window open. At the bottom of the sidebar press "Register late arrival". The alert for his wife's search appears under "Needs attention" within 15 seconds. |
+| A person who will decline contact. | At Harbor View Hotel, open "Looking for people here" and decline. At Riverside, the search card in "Our searches" still says "Request sent. Pending confirmation." |
+| A husband rescued later. | Keep Harbor View's window open. At the bottom of the sidebar press "Register late arrival". His wife's search lights up in "Our searches" within 15 seconds. |
 
 "Reset demo data", next to it, puts everything back.
 
 ### Screenshots
 
-**Home** is two large buttons. The sidebar holds the shelter selector and the navigation, with a count on every item that has something waiting.
+**Home** is two large buttons. The sidebar is organised by direction, with a count on every item that has something waiting.
 
 ![Home](docs/screenshots/home.png)
 
-**Needs attention** is one page for everything that needs a person: new matches, reunion notices, and the review queue (matches without a name, and requests for children or people who need help deciding). The sidebar item shows one count. Alerts that were already viewed stay on the page, greyed out, under "Earlier".
+**Our searches** has one card per search from this shelter, phrased "Elena Delgado (here) is looking for Rosa Delgado". Each card shows where its search stands: no matches yet, possible match, request sent, or reunited with the location. Cards with something new are highlighted.
 
-![Needs attention](docs/screenshots/attention.png)
+![Our searches](docs/screenshots/our-searches.png)
 
-**Search** starts with the microphone and the new-search form. Below them are this shelter's open searches, each with its best score and whether a request is pending.
+**Looking for people here** lists families asking about people registered at this shelter. The person decides: Accept or Decline.
+
+![Looking for people here](docs/screenshots/looking-for-people-here.png)
+
+**Needs review** holds matches without a name and requests for children or people who need help deciding.
+
+![Needs review](docs/screenshots/needs-review.png)
+
+**Search** starts with the microphone and the new-search form.
 
 ![Search](docs/screenshots/search.png)
 
@@ -66,10 +74,6 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Search results](docs/screenshots/search-results.png)
 
-**Requests.** The person decides: Accept or Decline.
-
-![Requests](docs/screenshots/requests.png)
-
 The photo in these screenshots is a neutral stand-in from a fake camera. All names are demo data.
 
 [TODO: add team names, DALI submission details and a demo video link, if any.]
@@ -80,11 +84,10 @@ The photo in these screenshots is a neutral stand-in from a fake camera. All nam
 
 - Register people and search for them, with a form and with voice input.
 - Matching on name, last known place, age, distinctive marks, height and hair, with plain-language reasons.
-- Reciprocal search.
-- A list of the shelter's open searches on the Search page, with the best current score and whether a request is pending, so a volunteer can reopen any search's results.
+- Reciprocal search: only when both searches describe each other at 85% or more.
 - A consent flow for contact requests: photo, a short message, accept or decline.
-- A review queue: matches without a name, and requests for minors and people who need assistance.
-- Automatic alerts and counts in the sidebar, refreshed every 15 seconds, with one "Needs attention" page.
+- "Our searches": one card per search, with its status, best score, sent request and reunion in one place. "Looking for people here": incoming requests about people registered at this shelter. "Needs review": matches without a name, and requests for minors and people who need assistance.
+- Automatic alerts: a new match highlights the card of its search. Counts in the sidebar refresh every 15 seconds.
 
 ### What is simulated on purpose
 
@@ -120,9 +123,10 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 - **No phone.** The family member is registered at the shelter as a searcher in the same step as the search. Nothing is needed from their device. Email is optional.
 - **No ID.** Matching does not depend on documents. It uses description and last known place.
 - **Aliases and fear of giving a real name.** A name can be an alias or "unknown", with a checkbox "This may not be their real name". No immigration or legal status field exists anywhere, and the voice prompt tells the AI never to record it.
-- **Minors.** Under 18 is flagged automatically. Their contact requests go to the review queue instead of to the child.
-- **People who cannot decide (for example dementia).** A "needs assistance" flag sends requests to the review queue instead of to the person.
-- **Declines that cannot be told apart.** After "Decline", the searcher sees "Pending confirmation", exactly as if nobody had answered. Later requests from the same searcher to the same person, even from a new search, are dropped silently and also look pending.
+- **A shelter deciding its own request.** A shelter can never accept or decline a request it sent, not even through "Needs review", and the API refuses it too. It only sees that request in "Our searches" as "Request sent. Pending confirmation." If the person asked about is at the same shelter, the request shows in both places, as "Elena Delgado (here) is looking for Rosa Delgado (also here)", and is decided there.
+- **Minors.** Under 18 is flagged automatically. Their contact requests go to "Needs review" instead of to the child.
+- **People who cannot decide (for example dementia).** A "needs assistance" flag sends requests to "Needs review" instead of to the person.
+- **Declines that cannot be told apart.** After "Decline", the search card still says "Request sent. Pending confirmation.", exactly as if nobody had answered. Later requests from the same searcher to the same person, even from a new search, are dropped silently and also look pending.
 - **Noise.** Voice recording asks the browser for noise suppression and echo cancellation. The form is always there as a backup.
 - **Badly transcribed names.** The AI marks uncertain values as low confidence, and they turn yellow with "Please check". The volunteer can fix any field by typing, and the transcript is shown during review.
 - **Duplicates.** Places autocomplete from existing places so there are not ten spellings of one school. Registering the same person twice is not detected (see limitations).
@@ -133,7 +137,7 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 - **No audio is stored.** The recording goes to the server in memory, to the transcription service (OpenAI), and is discarded. Nothing is written to disk.
 - **Transcripts are not stored or logged.** The text is shown to the volunteer during review only.
 - **Voice input sends data to outside providers.** The audio goes to OpenAI for transcription. The transcript text (never the audio) goes to the extraction provider, DeepSeek, which processes data outside the United States. Use voice input only with data you are allowed to send there. Without the two API keys, no data leaves the server.
-- **Photos are deleted** as soon as a contact request is accepted or declined. While they exist they are never served as static files. Only the shelter the request is for can fetch them, through a checked endpoint.
+- **Photos are deleted** as soon as a contact request is accepted or declined. While they exist they are never served as static files. Only a shelter that may decide the request can fetch them, through a checked endpoint. The sending shelter cannot.
 - **Location only after accepting.** Search results show sex, an age range and the reasons for the match. The name and shelter appear only after the other person accepts.
 - **No immigration status** field or question exists.
 - **Access checks on every route.** A test calls every API route with no session and with a session, and checks the exact status code. A new route that is not in that test fails the test suite.
@@ -150,7 +154,7 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 
 ### Tradeoff 1: privacy against speed
 
-Asking for consent delays reunions that would have been harmless. A mother could see where her child is right away; instead she waits for a volunteer to show a request. We accept that delay on purpose, because revealing the location of someone who is hiding from an abuser cannot be undone, and a slower reunion can. The review path for minors and people who cannot decide adds a further delay for the same reason. The one shortcut is a reciprocal match where both searches describe each other at 85% or more: no photo is needed, because both people have already asked for each other.
+Asking for consent delays reunions that would have been harmless. A mother could see where her child is right away; instead she waits for a volunteer to show a request. We accept that delay on purpose, because revealing the location of someone who is hiding from an abuser cannot be undone, and a slower reunion can. The review path for minors and people who cannot decide adds a further delay for the same reason. The one shortcut is a reciprocal match: both searches describe each other at 85% or more, so no photo is needed, because both people have already asked for each other.
 
 ### Tradeoff 2: simple, but not built for 400,000 people
 

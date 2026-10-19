@@ -1,23 +1,26 @@
 import { useEffect, useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useOutletContext, useParams } from 'react-router-dom'
 import { get, post } from '../api.js'
 import PersonForm, { emptyPerson } from '../components/PersonForm.jsx'
 import VoiceButton from '../components/VoiceButton.jsx'
 import Spoken from '../components/Spoken.jsx'
 import { useVoiceForm } from '../components/useVoiceForm.js'
 import ResultList from '../components/ResultList.jsx'
-import OpenSearches from '../components/OpenSearches.jsx'
 
 export default function Search() {
   const { id } = useParams()
   return id ? <SearchResults id={id} /> : <NewSearch />
 }
 
-// An existing search, opened from an alert in the sidebar.
+// An existing search, opened from its card in Our searches. Looking at it clears its "new" highlight.
 function SearchResults({ id }) {
+  const { refresh } = useOutletContext()
   const [data, setData] = useState(null)
   const [error, setError] = useState('')
-  const load = () => get(`/api/searches/${id}`).then(setData).catch((e) => setError(e.message))
+  const load = () => get(`/api/searches/${id}`).then((d) => {
+    setData(d)
+    post(`/api/searches/${id}/seen`).then(refresh).catch(() => {})
+  }).catch((e) => setError(e.message))
 
   useEffect(() => {
     load()
@@ -36,6 +39,7 @@ function SearchResults({ id }) {
 }
 
 function NewSearch() {
+  const { refresh } = useOutletContext()
   const { values: target, doubtful, heard, spoken, change: changeTarget, fill, reset: resetTarget } = useVoiceForm(emptyPerson)
   const [searcher, setSearcher] = useState(emptyPerson())
   const [searcherId, setSearcherId] = useState('')
@@ -56,7 +60,9 @@ function NewSearch() {
       const body = { target, email, emailOptIn }
       if (searcherId) body.searcherPersonId = Number(searcherId)
       else body.searcher = searcher
-      setOutcome(await post('/api/searches', body))
+      const created = await post('/api/searches', body)
+      setOutcome(created)
+      post(`/api/searches/${created.search.id}/seen`).then(refresh).catch(() => {}) // its results are on screen right now
       setError('')
     } catch (err) {
       setError(err.message)
@@ -106,8 +112,6 @@ function NewSearch() {
 
       {error && <p className="error">{error}</p>}
       <button className="btn big" onClick={submit} disabled={busy}>Search</button>
-
-      <OpenSearches />
     </>
   )
 }

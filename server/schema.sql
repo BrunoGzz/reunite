@@ -49,7 +49,6 @@ CREATE TABLE IF NOT EXISTS matches (
   score INTEGER NOT NULL,
   name_score REAL,
   reasons TEXT NOT NULL,
-  is_reciprocal INTEGER NOT NULL DEFAULT 0,
   state TEXT NOT NULL DEFAULT 'new',
   created_at TEXT NOT NULL,
   UNIQUE (search_id, person_id)

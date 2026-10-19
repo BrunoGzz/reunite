@@ -3,7 +3,15 @@ import { post } from '../api.js'
 import { Reunion } from './ResultList.jsx'
 
 // A contact request waiting for a decision. Asks twice, because both answers are hard to undo.
-export default function RequestCard({ request, onDecided }) {
+// Who is looking for whom. Both are at this shelter when the sender and the person asked about share it.
+export function requestTitle(request, here = false) {
+  const person = request.person_name || 'a person'
+  const personHere = here || request.person_here
+  if (request.sender_here && personHere) return `${request.searcher_name || 'Someone'} (here) is looking for ${person} (also here)`
+  return `Someone is looking for ${person}${personHere ? ' (here)' : ''}`
+}
+
+export default function RequestCard({ request, onDecided, here = false }) {
   const [confirming, setConfirming] = useState(null)
   const [done, setDone] = useState(null)
   const [error, setError] = useState('')
@@ -29,8 +37,8 @@ export default function RequestCard({ request, onDecided }) {
     <div className="card request">
       {request.has_photo ? <img className="photo" src={`/api/photos/${request.id}`} alt="Photo of the person looking" /> : <div className="photo none">No photo</div>}
       <div className="grow">
-        <div className="summary">Someone wants to contact {request.person_name || 'a person here'}</div>
-        <p>From: {request.searcher_name || 'a family member'}</p>
+        <div className="summary">{requestTitle(request, here)}</div>
+        {!request.sender_here && <p>From: {request.searcher_name || 'a family member'}</p>}
         {request.message && <p>"{request.message}"</p>}
         {(request.is_minor || request.needs_assistance) ? (
           <p>{request.is_minor ? <span className="tag">Minor</span> : null}{request.needs_assistance ? <span className="tag">Needs assistance</span> : null}</p>
