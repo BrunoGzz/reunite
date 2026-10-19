@@ -3,11 +3,9 @@
 Reunite helps shelter volunteers reunite families separated during a hurricane evacuation. A volunteer registers the people who arrive at their shelter and searches on behalf of relatives who are looking for someone. The app finds likely matches across all shelters and only connects two people when the person who was found says yes.
 
 **Live demo:** https://dali.bruno.com.es
-**Repository:** [TODO: GitHub link]
+**Repository:** https://github.com/BrunoGzz/reunite
 
 No login is needed. Pick a shelter in the sidebar and you are a volunteer there. Switch shelters to see the other side of a match.
-
-[TODO: check file names in docs/screenshots/]
 
 ![Home](docs/screenshots/home.png)
 ![Register with voice](docs/screenshots/register-voice.png)
