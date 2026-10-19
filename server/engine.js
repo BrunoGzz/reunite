@@ -1,0 +1,334 @@
+// Core rules that touch the database: registering, searching, alerts and contact requests.
+import crypto from 'node:crypto'
+import fs from 'node:fs'
+import path from 'node:path'
+import db, { now, photoDir } from './db.js'
+import { scoreMatch, ageRange } from './matching.js'
+
+export const SHOW_MIN = 50 // lowest score shown to a volunteer
+export const ALERT_MIN = 85 // lowest score that can raise an alert
+export const NAME_MIN = 0.8 // name similarity needed for an automatic alert
+const RECIPROCAL_MIN = 70 // how well the other search must describe the searcher
+
+const DESCRIPTION_FIELDS = [
+  'name', 'sex', 'age', 'height', 'hair_color', 'marks', 'languages', 'last_place',
+  'last_seen_day', 'last_seen_part', 'arrival_method', 'moved_by', 'travelling_with',
+]
+const SEXES = ['male', 'female', 'unknown']
+const HEIGHTS = ['short', 'medium', 'tall', 'unknown']
+
+// Turns form input into clean values: trimmed text, empty becomes null.
+export function cleanDescription(input = {}) {
+  const out = {}
+  for (const field of DESCRIPTION_FIELDS) {
+    const value = typeof input[field] === 'string' ? input[field].trim() : input[field]
+    out[field] = value === '' || value === undefined ? null : value
+  }
+  if (out.name && out.name.toLowerCase() === 'unknown') out.name = null
+  const age = parseInt(out.age, 10)
+  out.age = Number.isFinite(age) && age >= 0 && age < 120 ? age : null
+  if (!SEXES.includes(out.sex)) out.sex = 'unknown'
+  if (!HEIGHTS.includes(out.height)) out.height = 'unknown'
+  return out
+}
+
+function insertRow(table, row) {
+  const columns = Object.keys(row)
+  const sql = `INSERT INTO ${table} (${columns.join(',')}) VALUES (${columns.map((c) => '@' + c).join(',')})`
+  return db.prepare(sql).run(row).lastInsertRowid
+}
+
+export function getMovements() {
+  return db.prepare('SELECT * FROM group_movements').all()
+}
+
+export function addPerson(input, shelterId) {
+  const data = cleanDescription(input)
+  const row = {
+    ...data,
+    shelter_id: shelterId,
+    name_is_alias: input.name_is_alias ? 1 : 0,
+    is_minor: data.age !== null && data.age < 18 ? 1 : 0,
+    needs_assistance: input.needs_assistance ? 1 : 0,
+    status: 'present',
+    created_at: now(),
+  }
+  const id = insertRow('people', row)
+  return db.prepare('SELECT * FROM people WHERE id = ?').get(id)
+}
+
+export function addSearch({ shelterId, searcherPersonId, target, email, emailOptIn }) {
+  const row = {
+    ...cleanDescription(target),
+    shelter_id: shelterId,
+    searcher_person_id: searcherPersonId,
+    email: email ? String(email).trim() : null,
+    email_opt_in: email && emailOptIn ? 1 : 0,
+    status: 'open',
+    closed_reason: null,
+    created_at: now(),
+  }
+  const id = insertRow('searches', row)
+  return db.prepare('SELECT * FROM searches WHERE id = ?').get(id)
+}
+
+export function notify({ shelterId = null, kind, text, matchId = null, requestId = null, toAddress = null }) {
+  insertRow('notifications', {
+    shelter_id: shelterId, kind, text, to_address: toAddress,
+    match_id: matchId, request_id: requestId, is_read: 0, created_at: now(),
+  })
+}
+
+// Simulated email: saved, logged, shown in the UI. Nothing is really sent.
+function sendEmail(address, text) {
+  console.log(`[email to ${address}] ${text}`)
+  notify({ kind: 'email', text: `Email sent to ${address}`, toAddress: address })
+}
+
+function upsertMatch(search, person, result, isReciprocal) {
+  db.prepare(`
+    INSERT INTO matches (search_id, person_id, score, name_score, reasons, is_reciprocal, state, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, 'new', ?)
+    ON CONFLICT (search_id, person_id) DO UPDATE SET
+      score = excluded.score, name_score = excluded.name_score,
+      reasons = excluded.reasons, is_reciprocal = excluded.is_reciprocal
+  `).run(search.id, person.id, result.score, result.nameScore, JSON.stringify(result.reasons), isReciprocal ? 1 : 0, now())
+  return db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(search.id, person.id)
+}
+
+// If the candidate is also looking for the searcher, returns the candidate's own search.
+function reciprocalSearch(search, person, movements) {
+  const searcher = db.prepare('SELECT * FROM people WHERE id = ?').get(search.searcher_person_id)
+  const theirs = db.prepare("SELECT * FROM searches WHERE status = 'open' AND searcher_person_id = ?").all(person.id)
+  for (const other of theirs) {
+    const result = scoreMatch(other, searcher, movements)
+    if (result.score >= RECIPROCAL_MIN) return { search: other, searcher, result }
+  }
+  return null
+}
+
+function ageWindow(age) {
+  return age === null || age === undefined ? [null, null] : [age - 15, age + 15]
+}
+
+// Candidates are pre-filtered in SQL by sex and age so we never score everyone.
+function candidatesFor(search) {
+  const [low, high] = ageWindow(search.age)
+  return db.prepare(`
+    SELECT * FROM people
+    WHERE status = 'present' AND id != @self
+      AND (@sex = 'unknown' OR sex IN (@sex, 'unknown'))
+      AND (@low IS NULL OR age IS NULL OR age BETWEEN @low AND @high)
+  `).all({ self: search.searcher_person_id, sex: search.sex, low, high })
+}
+
+function openSearchesFor(person) {
+  const [low, high] = ageWindow(person.age)
+  return db.prepare(`
+    SELECT * FROM searches
+    WHERE status = 'open' AND searcher_person_id != @self
+      AND (sex = 'unknown' OR @sex = 'unknown' OR sex = @sex)
+      AND (@low IS NULL OR age IS NULL OR age BETWEEN @low AND @high)
+  `).all({ self: person.id, sex: person.sex, low, high })
+}
+
+// Decides whether a strong match raises an alert, goes to review, or just waits.
+function raiseAlertIfStrong(match, search, person, recip, fromNewSearch) {
+  if (match.score < ALERT_MIN || match.state !== 'new') return
+  const nameKnown = match.name_score !== null
+  if (!nameKnown) {
+    db.prepare("UPDATE matches SET state = 'needs_review' WHERE id = ?").run(match.id)
+    notify({ shelterId: null, kind: 'review_needed', text: 'A possible match without names needs review', matchId: match.id })
+    return
+  }
+  if (match.name_score < NAME_MIN) return
+  // A fresh search already shows its results on screen, so only reciprocal ones raise alerts.
+  if (fromNewSearch && !recip) return
+  alertShelters(match, search, person, recip)
+}
+
+export function alertShelters(match, search, person, recip) {
+  db.prepare("UPDATE matches SET state = 'alerted' WHERE id = ?").run(match.id)
+  notify({
+    shelterId: search.shelter_id, kind: 'match_alert', matchId: match.id,
+    text: `Possible match found for your search for ${search.name || 'someone'}`,
+  })
+  if (recip) {
+    const mirror = upsertMatch(recip.search, recip.searcher, recip.result, true)
+    db.prepare("UPDATE matches SET state = 'alerted' WHERE id = ?").run(mirror.id)
+    notify({
+      shelterId: person.shelter_id, kind: 'match_alert', matchId: mirror.id,
+      text: `Reciprocal match found for your search for ${recip.search.name || 'someone'}`,
+    })
+  }
+}
+
+// Runs a search and stores the matches. Returns the saved match rows above SHOW_MIN.
+export function runSearch(search) {
+  const movements = getMovements()
+  const saved = []
+  for (const person of candidatesFor(search)) {
+    const result = scoreMatch(search, person, movements)
+    if (result.score < SHOW_MIN) continue
+    const recip = reciprocalSearch(search, person, movements)
+    const match = upsertMatch(search, person, result, !!recip)
+    raiseAlertIfStrong(match, search, person, recip, true)
+    saved.push(match)
+  }
+  return saved
+}
+
+// Called when a new person is registered: compares them with all open searches.
+export function matchNewPerson(person) {
+  const movements = getMovements()
+  for (const search of openSearchesFor(person)) {
+    const result = scoreMatch(search, person, movements)
+    if (result.score < SHOW_MIN) continue
+    const recip = reciprocalSearch(search, person, movements)
+    const match = upsertMatch(search, person, result, !!recip)
+    raiseAlertIfStrong(match, search, person, recip, false)
+  }
+}
+
+export function approveMatch(matchId) {
+  const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(matchId)
+  if (!match || match.state !== 'needs_review') return null
+  const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
+  const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
+  const recip = match.is_reciprocal ? reciprocalSearch(search, person, getMovements()) : null
+  alertShelters(match, search, person, recip)
+  return match
+}
+
+export function rejectMatch(matchId) {
+  return db.prepare("UPDATE matches SET state = 'rejected' WHERE id = ? AND state = 'needs_review'").run(matchId).changes
+}
+
+function shelterInfo(id) {
+  return db.prepare('SELECT name, address, phone, instructions FROM shelters WHERE id = ?').get(id)
+}
+
+function placeLine(shelterId) {
+  const s = shelterInfo(shelterId)
+  return `${s.name}, ${s.address}, phone ${s.phone}`
+}
+
+// What the receiving shelter sees right after accepting.
+export function reunionForReceiver(request) {
+  const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(request.match_id)
+  const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
+  const searcher = db.prepare('SELECT name FROM people WHERE id = ?').get(search.searcher_person_id)
+  return { person_name: searcher.name, shelter: shelterInfo(search.shelter_id) }
+}
+
+// A result card for the searcher's volunteer. Never includes the candidate's name or shelter,
+// unless the candidate already accepted contact.
+export function resultCard(match) {
+  const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
+  const request = db.prepare('SELECT * FROM contact_requests WHERE match_id = ? ORDER BY id DESC LIMIT 1').get(match.id)
+  const sex = person.sex === 'unknown' ? 'Sex unknown' : person.sex[0].toUpperCase() + person.sex.slice(1)
+  const card = {
+    match_id: match.id,
+    search_id: match.search_id,
+    score: match.score,
+    summary: `${sex}, ${ageRange(person.age)}`,
+    reasons: JSON.parse(match.reasons),
+    reciprocal: !!match.is_reciprocal,
+    photo_required: needsPhoto(match),
+    request: null,
+  }
+  if (request && request.status === 'accepted') {
+    card.request = 'accepted'
+    card.reunion = { person_name: person.name, shelter: shelterInfo(person.shelter_id) }
+  } else if (request) {
+    card.request = 'pending' // declined looks exactly the same
+  }
+  return card
+}
+
+export function deletePhoto(file) {
+  if (file) fs.rmSync(path.join(photoDir, file), { force: true })
+}
+
+// A photo is required unless both searches describe each other very well (85% or more both ways).
+export function needsPhoto(match) {
+  if (match.score < ALERT_MIN) return true
+  const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
+  const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
+  const recip = reciprocalSearch(search, person, getMovements())
+  return !(recip && recip.result.score >= ALERT_MIN)
+}
+
+function savePhoto(file) {
+  if (!file) return null
+  const name = crypto.randomBytes(16).toString('hex')
+  fs.writeFileSync(path.join(photoDir, name), file.buffer)
+  return name
+}
+
+// Returns the request id. Repeats are quietly absorbed:
+// - while one is pending for this match, nothing new is created;
+// - once a searcher has been declined by a person, any later request from that searcher to that
+//   person (even from a new search) is recorded as declined and never reaches the receiving shelter.
+// Either way the searcher sees "Pending confirmation".
+export function createRequest({ match, message, familyDetail, photo }) {
+  const earlier = db.prepare("SELECT id FROM contact_requests WHERE match_id = ? AND (status = 'pending' OR status = 'declined') ORDER BY id DESC LIMIT 1").get(match.id)
+  if (earlier) return earlier.id
+
+  const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
+  const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
+
+  const declinedBefore = db.prepare(`
+    SELECT 1 FROM contact_requests r JOIN matches m ON m.id = r.match_id JOIN searches s ON s.id = m.search_id
+    WHERE r.status = 'declined' AND s.searcher_person_id = ? AND m.person_id = ?
+  `).get(search.searcher_person_id, person.id)
+  if (declinedBefore) {
+    return insertRow('contact_requests', {
+      match_id: match.id, from_shelter_id: search.shelter_id, to_shelter_id: person.shelter_id,
+      routed_to: 'shelter', message: null, family_detail: null, photo_file: null,
+      status: 'declined', created_at: now(), decided_at: now(),
+    })
+  }
+
+  const special = person.is_minor || person.needs_assistance
+  const id = insertRow('contact_requests', {
+    match_id: match.id,
+    from_shelter_id: search.shelter_id,
+    to_shelter_id: person.shelter_id,
+    routed_to: special ? 'coordinator' : 'shelter',
+    message: message || null,
+    family_detail: familyDetail || null,
+    photo_file: savePhoto(photo),
+    status: 'pending',
+    created_at: now(),
+  })
+  notify({
+    shelterId: special ? null : person.shelter_id,
+    kind: 'contact_request',
+    text: special ? 'A contact request needs a coordinator decision' : 'Someone wants to contact a person at your shelter',
+    matchId: match.id, requestId: id,
+  })
+  return id
+}
+
+// Accepting reveals both shelters to each other and closes the related searches.
+export function acceptRequest(request) {
+  const match = db.prepare('SELECT * FROM matches WHERE id = ?').get(request.match_id)
+  const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
+  const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
+  const searcher = db.prepare('SELECT * FROM people WHERE id = ?').get(search.searcher_person_id)
+
+  db.prepare("UPDATE matches SET state = 'connected' WHERE id = ?").run(match.id)
+  db.prepare("UPDATE searches SET status = 'closed', closed_reason = 'accepted' WHERE id = ?").run(search.id)
+
+  // Also close the found person's own search for the searcher, if there is one.
+  // Other relatives' searches stay open: they may still need this person.
+  const theirs = reciprocalSearch(search, person, getMovements())
+  if (theirs) db.prepare("UPDATE searches SET status = 'closed', closed_reason = 'accepted' WHERE id = ?").run(theirs.search.id)
+
+  notify({ shelterId: search.shelter_id, kind: 'reunion', matchId: match.id, text: `Contact accepted. ${person.name || 'The person'} can be found at ${placeLine(person.shelter_id)}` })
+  notify({ shelterId: person.shelter_id, kind: 'reunion', matchId: match.id, text: `Contact accepted. ${searcher.name || 'The family'} is at ${placeLine(search.shelter_id)}` })
+  if (search.email_opt_in && search.email) {
+    sendEmail(search.email, `Good news: ${person.name || 'the person you are looking for'} accepted contact. Ask the volunteer at ${shelterInfo(search.shelter_id).name} for details.`)
+  }
+}
