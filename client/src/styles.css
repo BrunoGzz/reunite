@@ -54,7 +54,8 @@ a { color: var(--accent); }
 .switcher { background: var(--bg); border-radius: var(--radius); padding: 14px; display: flex; flex-direction: column; gap: 10px; }
 .switcher-label { font-size: 13px; font-weight: 600; color: var(--muted); padding-left: 4px; }
 .select-wrap { position: relative; display: flex; align-items: center; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 0 10px; color: var(--accent); }
-.select-wrap select { flex: 1; min-width: 0; border: 0; background: transparent; padding: 0 4px 0 8px; height: 48px; font-weight: 600; font-size: 15px; color: var(--text); text-overflow: ellipsis; cursor: pointer; }
+.select-wrap select { appearance: none; -webkit-appearance: none; flex: 1; min-width: 0; border: 0; background: transparent; padding: 0 26px 0 8px; height: 48px; font-weight: 600; font-size: 15px; color: var(--text); text-overflow: ellipsis; cursor: pointer; }
+.select-chevron { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--muted); }
 .select-wrap select:focus { outline: none; box-shadow: none; }
 .select-wrap:hover { border-color: #c9c0b7; }
 .select-wrap:has(select:focus-visible) { border-color: var(--text); } /* keyboard focus only, no halo */
@@ -203,7 +204,7 @@ h2.new-search { margin-top: 36px; }
 .open-side { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; white-space: nowrap; }
 .open-score strong { color: var(--accent); font-size: 20px; }
 
-/* Needs your attention page */
+/* Needs attention page */
 .attn-row { display: flex; align-items: center; gap: 16px; background: var(--card); border: 1px solid var(--line); border-left: 5px solid var(--accent); border-radius: var(--radius); padding: 18px 22px; margin: 12px 0; box-shadow: var(--shadow-sm); text-decoration: none; color: var(--text); font-size: 18px; }
 a.attn-row:hover { box-shadow: var(--shadow-md); }
 .attn-icon { flex-shrink: 0; width: 32px; height: 32px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); display: flex; align-items: center; justify-content: center; }

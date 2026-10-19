@@ -1,13 +1,13 @@
 import { useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Home, Bell, Inbox, ClipboardCheck, Users, Building2 } from 'lucide-react'
+import { Home, Bell, Inbox, Users, Building2, ChevronDown } from 'lucide-react'
 import { post } from '../api.js'
 import Logo from './Logo.jsx'
 
 export default function Sidebar({ me, shelters, onChoose, attention, refresh }) {
   const waiting = attention ? attention.pendingRequests : 0
-  const toDo = attention ? attention.alerts.length + attention.pendingRequests : 0
-  const toReview = attention ? attention.reviewCount : 0
+  // One count for everything on the "Needs attention" page: new alerts plus the review queue.
+  const toDo = attention ? attention.alerts.length + attention.reviewCount : 0
 
   return (
     <aside className="sidebar">
@@ -20,14 +20,14 @@ export default function Sidebar({ me, shelters, onChoose, attention, refresh }) 
           <select id="shelter-select" value={me.shelterId} onChange={(e) => onChoose(Number(e.target.value))}>
             {shelters.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
           </select>
+          <ChevronDown size={18} className="select-chevron" aria-hidden="true" />
         </div>
       </div>
 
       <nav className="nav">
         <NavLink to="/" end><Home size={20} />Home</NavLink>
-        <NavLink to="/attention"><Bell size={20} />Needs your attention{toDo > 0 && <span className="count">{toDo}</span>}</NavLink>
+        <NavLink to="/attention"><Bell size={20} />Needs attention{toDo > 0 && <span className="count">{toDo}</span>}</NavLink>
         <NavLink to="/requests"><Inbox size={20} />Requests{waiting > 0 && <span className="count">{waiting}</span>}</NavLink>
-        <NavLink to="/review"><ClipboardCheck size={20} />Needs review{toReview > 0 && <span className="count">{toReview}</span>}</NavLink>
         <NavLink to="/people"><Users size={20} />People here</NavLink>
       </nav>
 

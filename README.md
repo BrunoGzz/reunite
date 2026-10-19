@@ -31,12 +31,12 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 | Case | Where to look |
 |---|---|
-| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits under "Needs review". Approve it there and the mother's shelter (St. Mary's) gets an alert. |
-| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | The daughter's shelter (Riverside) has an alert. Send a contact request from it: it goes to "Needs review" instead of to the mother. |
+| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits in the review queue on "Needs attention". Approve it there and the mother's shelter (St. Mary's) gets an alert. |
+| An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | The daughter's shelter (Riverside) has an alert. Send a contact request from it: it goes to the review queue instead of to the mother. |
 | A couple searching for each other. | Riverside and St. Mary's both get a reciprocal alert. Their request needs no photo. |
 | A person registered under an alias ("Mr. Blue"). | Riverside's open search for "Tomas Ferrer" finds him through marks and place, with a lower score. |
 | A person who will decline contact. | At Harbor View Hotel, open Requests and decline. At Riverside, Requests then "Sent by us" still says "Pending confirmation". |
-| A husband rescued later. | Keep Harbor View's window open. At the bottom of the sidebar press "Register late arrival". The alert for his wife's search appears in "Needs your attention" within 15 seconds. |
+| A husband rescued later. | Keep Harbor View's window open. At the bottom of the sidebar press "Register late arrival". The alert for his wife's search appears under "Needs attention" within 15 seconds. |
 
 "Reset demo data", next to it, puts everything back.
 
@@ -46,9 +46,9 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Home](docs/screenshots/home.png)
 
-**Needs your attention** lists new matches and people who want to get in touch.
+**Needs attention** is one page for everything that needs a person: new matches, reunion notices, and the review queue (matches without a name, and requests for children or people who need help deciding). The sidebar item shows one count.
 
-![Needs your attention](docs/screenshots/attention.png)
+![Needs attention](docs/screenshots/attention.png)
 
 **Search** starts with this shelter's open searches, each with its best score and whether a request is pending. Below them is the new-search form.
 
@@ -70,10 +70,6 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Requests](docs/screenshots/requests.png)
 
-**Needs review** holds matches without a name and requests for children or people who need help deciding.
-
-![Needs review](docs/screenshots/needs-review.png)
-
 The photo in these screenshots is a neutral stand-in from a fake camera. All names are demo data.
 
 [TODO: add team names, DALI submission details and a demo video link, if any.]
@@ -87,8 +83,8 @@ The photo in these screenshots is a neutral stand-in from a fake camera. All nam
 - Reciprocal search.
 - A list of the shelter's open searches on the Search page, with the best current score and whether a request is pending, so a volunteer can reopen any search's results.
 - A consent flow for contact requests: photo, a short message, accept or decline.
-- A "Needs review" page: matches without a name, and requests for minors and people who need assistance.
-- Automatic alerts and counts in the sidebar, refreshed every 15 seconds, with a "Needs your attention" page.
+- A review queue: matches without a name, and requests for minors and people who need assistance.
+- Automatic alerts and counts in the sidebar, refreshed every 15 seconds, with one "Needs attention" page.
 
 ### What is simulated on purpose
 
@@ -124,8 +120,8 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 - **No phone.** The family member is registered at the shelter as a searcher in the same step as the search. Nothing is needed from their device. Email is optional.
 - **No ID.** Matching does not depend on documents. It uses description and last known place.
 - **Aliases and fear of giving a real name.** A name can be an alias or "unknown", with a checkbox "This may not be their real name". No immigration or legal status field exists anywhere, and the voice prompt tells the AI never to record it.
-- **Minors.** Under 18 is flagged automatically. Their contact requests go to "Needs review" instead of to the child.
-- **People who cannot decide (for example dementia).** A "needs assistance" flag sends requests to "Needs review" instead of to the person.
+- **Minors.** Under 18 is flagged automatically. Their contact requests go to the review queue instead of to the child.
+- **People who cannot decide (for example dementia).** A "needs assistance" flag sends requests to the review queue instead of to the person.
 - **Declines that cannot be told apart.** After "Decline", the searcher sees "Pending confirmation", exactly as if nobody had answered. Later requests from the same searcher to the same person, even from a new search, are dropped silently and also look pending.
 - **Noise.** Voice recording asks the browser for noise suppression and echo cancellation. The form is always there as a backup.
 - **Badly transcribed names.** The AI marks uncertain values as low confidence, and they turn yellow with "Please check". The volunteer can fix any field by typing, and the transcript is shown during review.

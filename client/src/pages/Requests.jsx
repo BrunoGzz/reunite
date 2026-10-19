@@ -7,6 +7,7 @@ export default function Requests() {
   const { refresh } = useOutletContext()
   const [tab, setTab] = useState('incoming')
   const [data, setData] = useState(null)
+  const [decided, setDecided] = useState({}) // decided requests stay on screen, so the result can be read
 
   useEffect(() => {
     const load = () => get('/api/requests').then(setData).catch(() => {})
@@ -16,6 +17,7 @@ export default function Requests() {
   }, [])
 
   if (!data) return null
+  const incoming = [...data.incoming, ...Object.values(decided).filter((d) => !data.incoming.some((r) => r.id === d.id))]
 
   return (
     <>
@@ -29,7 +31,7 @@ export default function Requests() {
         <>
           <p className="notice">Show this screen to the person. They decide.</p>
           {data.incoming.length === 0 && <div className="empty">No requests waiting. When a family asks to contact someone here, it will appear on this page.</div>}
-          {data.incoming.map((r) => <RequestCard key={r.id} request={r} onDecided={refresh} />)}
+          {incoming.map((r) => <RequestCard key={r.id} request={r} onDecided={() => { setDecided((d) => ({ ...d, [r.id]: r })); refresh() }} />)}
         </>
       )}
 
