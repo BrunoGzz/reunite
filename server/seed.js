@@ -7,7 +7,7 @@ import { addPerson, addSearch, runSearch, matchNewPerson, createRequest } from '
 
 const DAY = '2026-09-10'
 
-// Registered live by the coordinator button, so evaluators can see the automatic alert happen.
+// Registered live by the "Register late arrival" button, so the automatic alert can be seen happening.
 export const LATE_ARRIVAL = {
   shelter: "St. Mary's Community Center",
   person: {
@@ -58,17 +58,12 @@ export function seed() {
 
   addFillerPeople([riverside, stMarys, harbor])
 
-  const move = (m) => db.prepare(`INSERT INTO group_movements (origin_place, departed_day, departed_part, transport, agency, destination_shelter_id, notes, created_at)
-    VALUES (@origin_place, @departed_day, @departed_part, @transport, @agency, @destination_shelter_id, @notes, @created_at)`).run({ ...m, created_at: now() })
-
-  // Case 1: school bus. The child gave no name, so only the trace connects him to his mother.
-  move({ origin_place: 'Lincoln Elementary', departed_day: DAY, departed_part: 'afternoon', transport: 'bus', agency: 'County School District', destination_shelter_id: riverside, notes: 'School bus 14, 22 children' })
+  // Case 1: a child from a school. He gave no name, so only the place and his age connect him to his mother.
   const carla = addPerson({ name: 'Carla Reyes', sex: 'female', age: 36, last_place: 'Oak Ridge Apartments', languages: 'Spanish, English' }, stMarys)
   const motherSearch = addSearch({ shelterId: stMarys, searcherPersonId: carla.id, email: 'carla.reyes@example.com', emailOptIn: true,
     target: { name: 'Daniel Reyes', sex: 'male', age: 8, last_place: 'Lincoln Elementary', last_seen_day: DAY, last_seen_part: 'afternoon', marks: 'red backpack' } })
 
-  // Case 2: care home transfer by another agency, person needs assistance.
-  move({ origin_place: 'Sunrise Care Home', departed_day: DAY, departed_part: 'morning', transport: 'agency transfer', agency: 'Coastal Care Transport', destination_shelter_id: harbor, notes: 'Residents moved to Harbor View Hotel' })
+  // Case 2: moved out of a care home by another agency, and needs assistance.
   const elena = addPerson({ name: 'Elena Delgado', sex: 'female', age: 52, last_place: 'Cedar Park Homes' }, riverside)
   const daughterSearch = addSearch({ shelterId: riverside, searcherPersonId: elena.id,
     target: { name: 'Rosa Delgado', sex: 'female', age: 81, last_place: 'Sunrise Care Home', last_seen_day: DAY, marks: 'wheelchair, hearing aid' } })
@@ -96,7 +91,7 @@ export function seed() {
   for (const s of [motherSearch, daughterSearch, sisterSearch, victorSearch, wifeSearch]) runSearch(s)
 
   const found = (shelterId, data) => matchNewPerson(addPerson(data, shelterId))
-  found(riverside, { sex: 'male', age: 8, height: 'short', hair_color: 'brown', marks: 'red backpack', arrival_method: 'bus' })
+  found(riverside, { sex: 'male', age: 8, height: 'short', hair_color: 'brown', marks: 'red backpack', last_place: 'Lincoln Elementary', last_seen_day: DAY, last_seen_part: 'afternoon', arrival_method: 'bus' })
   found(harbor, { name: 'Rosa Delgado', sex: 'female', age: 81, hair_color: 'white', marks: 'wheelchair, hearing aid', languages: 'Spanish', last_place: 'Sunrise Care Home', last_seen_day: DAY, last_seen_part: 'morning', arrival_method: 'agency transfer', needs_assistance: true })
   found(stMarys, { name: 'Mr. Blue', name_is_alias: true, sex: 'male', age: 46, marks: 'tattoo of an anchor on right arm', last_place: 'Main Street Church', last_seen_day: DAY, arrival_method: 'own car' })
   found(harbor, { name: 'Maria Santos', sex: 'female', age: 36, hair_color: 'black', last_place: 'Harbor Mall', last_seen_day: DAY, arrival_method: 'bus' })
@@ -111,7 +106,7 @@ export function seed() {
 }
 
 export function resetDemo() {
-  for (const table of ['notifications', 'contact_requests', 'matches', 'searches', 'group_movements', 'people', 'shelters']) {
+  for (const table of ['notifications', 'contact_requests', 'matches', 'searches', 'people', 'shelters']) {
     db.prepare(`DELETE FROM ${table}`).run()
   }
   for (const file of fs.readdirSync(photoDir)) {

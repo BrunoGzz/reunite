@@ -80,7 +80,11 @@ function NewSearch() {
   return (
     <>
       <h1>Search for someone</h1>
-      <p className="subtitle">Describe the person you are looking for.</p>
+      <p className="subtitle">Check your open searches, or start a new one.</p>
+
+      <OpenSearches />
+
+      <h2 className="new-search">New search</h2>
       <VoiceButton mode="target" onResult={fill} />
       <Spoken spoken={spoken} />
       <h2>Who are you looking for?</h2>
@@ -106,8 +110,6 @@ function NewSearch() {
 
       {error && <p className="error">{error}</p>}
       <button className="btn big" onClick={submit} disabled={busy}>Search</button>
-
-      <OpenSearches />
     </>
   )
 }

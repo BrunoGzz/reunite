@@ -22,7 +22,6 @@ Constraints the design must respect:
 | Shelter volunteer | Yes, on a shelter laptop | 2 a.m., tired, a queue of families at the desk. One hand on a mouse, one on a coffee. Needs to register or search in under a minute. |
 | Family member searching | No, talks to the volunteer | Standing at the desk, stressed, often crying. Gives a description, maybe an email. |
 | Person being sought | No, talks to the volunteer | The volunteer shows a contact request on screen. They decide: accept or decline. |
-| Coordinator | Yes, desktop | Reviews doubtful matches, decides for minors and people who cannot decide for themselves, records group transfers (buses, boats, care home moves). |
 
 The app is for laptop and desktop only. No mobile layout.
 
@@ -30,7 +29,7 @@ The test for every screen: can an exhausted volunteer, with a queue in front of 
 
 ## 3. Core ideas
 
-1. **Traces, not just people.** People move along routes: school, bus, shelter. Care home, agency, hotel. Home, boat, shelter. Besides describing the person, we record the last place and time they were known to be somewhere. Group transfers are stored and used to find matches even when there is no name.
+1. **Places, not just names.** People are often found by where they were, not by what they are called. Besides describing the person, we record the last place and time they were known to be somewhere (a school, a care home, a street). Matching uses that place even when there is no name, so a child who cannot say his name can still be connected to the school his mother is asking about.
 2. **Reciprocal search.** If A looks for B and B looks for A, that is the strongest signal. It is flagged as reciprocal, and when both descriptions are strong (85% or more each way) the contact request needs no photo.
 3. **Voice entry.** The main input for registering and searching is a microphone button. The volunteer (or the person, in their own language) speaks, AI fills the fields, the volunteer reviews before saving. The manual form is always available.
 
@@ -38,20 +37,25 @@ Privacy rule that runs through everything: **nobody sees another person's locati
 
 ## 4. Screens
 
-There is no login. The app opens straight away, and a left sidebar (like a social app) holds everything around the work:
+There is no login and there are no roles. The app opens straight away, and a left sidebar (like a social app) holds everything around the work:
 
 - the logo,
-- a shelter selector ("Working at") and a Volunteer / Coordinator toggle, so the same browser can act as any shelter and role,
-- navigation: Home, Requests (with a count of waiting requests), People here, and Coordinator (only when the role is Coordinator),
-- a "Needs your attention" section with a count: new alerts ("Possible match found for your search for Maria Lopez") and pending contact requests ("1 person wants to contact someone here"). Each item opens the place where the volunteer can act. Empty state: "You are all caught up."
+- a shelter selector ("Working at"), so the same browser can act as any shelter,
+- navigation, each item with a count badge when something is waiting:
+  - Home,
+  - Needs your attention (new alerts plus waiting contact requests),
+  - Requests (contact requests waiting for a decision at this shelter),
+  - Needs review (matches without a name, and requests for minors and people who need help deciding),
+  - People here,
+- at the very bottom, two small, discreet demo tools: "Register late arrival" and "Reset demo data".
 
-Register and Search are not in the navigation. They are reached from Home. Changing the shelter or the role returns to Home, so no page keeps showing another shelter's data. The sidebar polls every 15 seconds (no websockets).
+Register and Search are not in the navigation. They are reached from Home. Changing the shelter returns to Home, so no page keeps showing another shelter's data. The sidebar polls every 15 seconds (no websockets).
 
-### 4.1 Choosing a shelter and role (no login)
+### 4.1 Choosing a shelter (no login)
 
-- What the user sees: the shelter selector and the role toggle at the top of the sidebar. The first visit starts as a volunteer at the first shelter.
-- The choice is kept in the server session, so alerts, requests and photo access still work per shelter and per role.
-- There is no password and no authentication at all. This is a prototype for fake data; anyone can act as any shelter or as the coordinator. See "Privacy rules" for what that means.
+- What the user sees: the shelter selector at the top of the sidebar. The first visit starts at the first shelter. The selector has no shadow or halo: a plain border, which turns dark for keyboard focus only.
+- The choice is kept in the server session, so alerts, requests and photo access still work per shelter.
+- There is no password and no authentication. See "Privacy rules" for what that means.
 
 ### 4.2 Home
 
@@ -60,7 +64,7 @@ Two large buttons and nothing else:
 - "Register a person": "Add someone who just arrived at this shelter, so their family can find them."
 - "Search for someone": "Look for a family member who may be in another shelter."
 
-Each has an icon, a title and a one-line description. The question "is there anything new I need to do?" is answered by the sidebar, which is always visible.
+Each has an icon, a title and a one-line description. "Is there anything new I need to do?" is answered by the badge on "Needs your attention", which is always visible in the sidebar.
 
 ### 4.3 Register
 
@@ -77,7 +81,7 @@ Each has an icon, a title and a one-line description. The question "is there any
 - Hold the Space bar to record when nothing is focused (not a field, button, checkbox or select), so typing is never affected.
 - The name can be fixed by typing. Alias or "unknown" is accepted. Checkbox "This may not be their real name".
 - If voice is not configured, the mic button shows "Voice input is not configured" and the form works as normal.
-- On save: the matching runs against all open searches (see 5.4). Confirmation screen: "Saved. Registered Maria L. If someone is looking for her, you will see an alert in the sidebar."
+- On save: the matching runs against all open searches (see 5.3). Confirmation screen: "Saved. Registered Maria L. If someone is looking for her, you will see an alert in the sidebar."
 - Under 18 sets the minor flag automatically, shown as a visible label.
 
 Fields (people):
@@ -106,13 +110,13 @@ There is no status field (present, transferred, left). Everyone registered is si
 - Results appear below, sorted by similarity, only from 50%. Each result card shows:
   - the similarity percentage
   - a non-identifying summary: sex and age range (for example "Female, 30 to 40")
-  - why it matches, in plain language: "Name similar (92%)", "Same last known place: Lincoln Elementary", "Arrived by a bus that left from that place", "Distinctive marks match: glasses, scar on left hand"
+  - why it matches, in plain language: "Name similar (92%)", "Same last known place: Lincoln Elementary", "Distinctive marks match: glasses, scar on left hand"
   - a "Reciprocal" badge if that person is also looking for the searcher
   - a "Send contact request" button
   - never the candidate's full name or shelter
 - The search stays saved as open. The page says so: "This search stays open. You will get an alert if someone new matches."
 - Empty state: "No possible matches yet. We will keep looking and alert you."
-- "Open searches" at the bottom of the page: a simple list of this shelter's open searches. Each row shows who is looking and who they are looking for ("Elena Delgado is looking for Rosa Delgado"), a short description (sex, age, last place), the best current score, and "Pending confirmation" if a contact request was sent. A request that was declined also reads "Pending confirmation", so a decline stays invisible here too. Clicking a row opens its results again. Empty state: "No open searches yet. Start one above with the microphone."
+- "Open searches" at the top of the page, above the new-search form: a simple list of this shelter's open searches. Each row shows who is looking and who they are looking for ("Elena Delgado is looking for Rosa Delgado"), a short description (sex, age, last place), the best current score, and "Pending confirmation" if a contact request was sent. A request that was declined also reads "Pending confirmation", so a decline stays invisible here too. Clicking a row opens its results again. Empty state: "No open searches yet. Start one below with the microphone."
 
 ### 4.5 Contact request (modal from a result)
 
@@ -132,36 +136,50 @@ What happens on each decision:
 
 - Accept: both shelters see the other's name and location plus instructions. Only the search behind this request closes, plus the found person's own search for the searcher if it exists. Other relatives' searches for the same person stay open. The photo is deleted.
 - Decline: the searcher still sees "Pending confirmation", identical to no response. The photo is deleted. Any later request from the same searcher (a person, not a search) to the same found person is dropped silently, even from a brand new search: the searcher sees "Pending confirmation" as usual, but nothing reaches the receiving shelter (no pending request, no alert, no photo stored). The drop is stored as a declined request so the searcher's screens stay consistent.
-- If the sought person is a minor or has "needs assistance", the request goes to the coordinator instead.
+- If the sought person is a minor or has "needs assistance", the request is not shown to them: it goes to "Needs review", where any shelter can decide.
 - If the searcher ticked email, accepting "sends" an email (simulated, saved in notifications, logged to the console, UI shows "Email sent to ...").
 
 ### 4.7 People here
 
 - A simple list of everyone registered at this shelter: name (or "Unknown"), sex, age, when they were registered, and tags (Alias, Minor, Needs assistance).
 - A search box on top. No actions per row: status changes (transferred, left) are out of scope.
-- A discreet "Import paper list" button shows "Coming soon".
 - Empty state: "Nobody registered yet. Go to Home and choose \"Register a person\" to add the first one."
 
-### 4.8 Coordinator
+### 4.8 Needs your attention
 
-Only for the coordinator role.
+- Its own page, opened from the sidebar item (the badge counts what is on it).
+- New alerts for this shelter ("Possible match found for your search for Maria Lopez", "Reciprocal match found for your search for Tanya Hill", "Contact accepted. ..."), each with an "Open" button that goes to that search's results ("Got it" for reunion notices).
+- One row when people want to contact someone here ("1 person wants to contact someone here"), linking to Requests.
+- "Recent messages": the simulated emails sent for this shelter's searches ("Email sent to ...").
+- Empty state: "You are all caught up. New matches and requests will appear here."
 
-- Review queue: matches with no name on one side, requests for minors, requests for people who need assistance. Each item shows both descriptions side by side with Approve and Reject. Approving creates the alert (or lets the request proceed).
-- Group transfers: list with an "Add group transfer" button. Form: origin place, approximate time, transport, agency, destination shelter, notes, optional list of names.
-- Demo tools, at the bottom and clearly labelled: "Demo: register late arrival" (registers the husband "rescued later" and triggers the automatic alert) and "Reset demo data".
+### 4.9 Needs review
+
+Available to every shelter. It holds two kinds of items, with the count shown on the sidebar item:
+
+- Matches without a name on one side (score 85% or more). Each shows both descriptions side by side: what the family is looking for, and the registered person's sex, age, last place and marks. The shelter where the registered person is is never shown. Buttons: "Approve and alert" (creates the alert for the searcher's shelter) and "Not a match".
+- Contact requests for minors and for people flagged "needs assistance": the same card as in Requests (photo, message, Accept or Decline).
+- Empty state: "Nothing to review right now."
+
+### 4.10 Demo tools
+
+Two small text buttons at the bottom of the sidebar, for showing the project, available everywhere:
+
+- "Register late arrival": registers the husband "rescued later" at St. Mary's and triggers the automatic alert for his wife's search. A short confirmation appears under the buttons.
+- "Reset demo data": asks for a second click ("Yes, reset" or "Cancel"), then rebuilds the demo data.
 
 ## 5. Behaviour
 
 ### 5.1 Matching
 
-One file, `server/matching.js`, pure functions. Input: a search description and a person record (plus the group transfers). Output: percentage and a list of plain-language reasons.
+One file, `server/matching.js`, pure functions. Input: a search description and a person record. Output: percentage and a list of plain-language reasons.
 
 Normalise: lowercase, strip accents, strip punctuation. Names can have two surnames in a different order, so compare tokens, not the whole string.
 
 | Component | Weight | How |
 |---|---|---|
 | Name | 35 | Jaro-Winkler per token, best pairing between tokens |
-| Route / last place | 25 | Place similarity plus a bonus if a group transfer connects them |
+| Last known place | 25 | Place similarity, token by token |
 | Age | 15 | 1 if the difference is 3 years or less, falls linearly to 0 at 15 |
 | Distinctive marks | 15 | Keyword overlap |
 | Height and hair | 10 | Simple match |
@@ -171,27 +189,23 @@ Rules:
 - If sex is known on both sides and differs, the score is 0.
 - If a field is missing on either side, that component is skipped and the weights are shared among the remaining ones. Missing data is never penalised.
 - SQL pre-filters by sex and age range when present, so we do not compare against everyone.
-- The weights above did not change when "who moved them", "travelling with" and the status field were removed: none of them was ever part of the score. All registered people are candidates.
+- Removing "who moved them", "travelling with", the status field and group transfers did not change the weights: only the transfer bonus on the place component is gone. All registered people are candidates. "How they arrived" and the day and time last seen are kept as description only; they are not scored.
 
 ### 5.2 Reciprocal
 
 A match gets the "Reciprocal" badge when the candidate also has an open search that describes the searcher at 70% or more. Reciprocal matches alert both shelters.
 
-The no-photo shortcut is stricter: it applies only when both directions score 85% or more. Then sending the request counts as one volunteer's confirmation and Accept as the other's. A reciprocal match between 70% and 85% in either direction keeps the badge but still needs a photo. Minors and "needs assistance" always go to the coordinator.
+The no-photo shortcut is stricter: it applies only when both directions score 85% or more. Then sending the request counts as one volunteer's confirmation and Accept as the other's. A reciprocal match between 70% and 85% in either direction keeps the badge but still needs a photo. Minors and "needs assistance" always go to "Needs review".
 
-### 5.3 Group transfers
-
-If the sought person's last known place matches the origin of a transfer within a reasonable time window, and the candidate is at the transfer's destination shelter (or arrived by that transport), the route score goes up. The explanation says "Arrived by a bus that left from that place" and never names the shelter.
-
-### 5.4 Automatic alerts
+### 5.3 Automatic alerts
 
 Every time a person is registered, they are compared with all open searches.
 
 - Score of 85% or more and name similarity of 0.8 or more: an alert is created for the searcher's shelter ("Possible match found for your search for X").
-- Score of 85% or more but a name is missing on one side: it goes to the coordinator review queue. If approved, the alert is created.
+- Score of 85% or more but a name is missing on one side: it goes to "Needs review". If approved, the alert is created.
 - If also reciprocal: both shelters are alerted.
 
-### 5.5 Voice pipeline
+### 5.4 Voice pipeline
 
 1. The browser records with `MediaRecorder` while the button is held, using `getUserMedia` with `noiseSuppression` and `echoCancellation` on.
 2. `POST /api/voice` receives the audio (multer, memory only) and sends it to OpenAI transcription. Audio is never written to disk.
@@ -201,14 +215,14 @@ Every time a person is registered, they are compared with all open searches.
 6. Voice is only for the described person (Register, and the target of a Search). The person searching is entered with the small form or picked from the dropdown.
 7. Neither audio nor transcript is stored or logged.
 
-### 5.6 Privacy rules
+### 5.5 Privacy rules
 
 - Candidate name and shelter are never shown in search results.
 - Location is revealed only after Accept.
 - Declined and unanswered look identical to the searcher. After a decline, repeat requests from the same searcher to the same person (any search) are dropped without trace on the receiving side. Limitation: someone who registers again under a different name at another shelter looks like a new searcher; without identity documents this cannot be fully prevented. The Search screen therefore lets the volunteer pick an already registered searcher instead of creating a new one.
-- Photos live in `server/data/photos/` with random names, are never served statically, and are readable only via `GET /api/photos/:id` by the receiving shelter or the coordinator. They are deleted when the request is decided.
+- Photos live in `server/data/photos/` with random names, are never served statically, and are readable only via `GET /api/photos/:id` by the receiving shelter (or by any shelter, for requests under "Needs review"). They are deleted when the request is decided.
 - No audio is stored. No immigration status field exists anywhere.
-- Because there is no login, these rules protect against honest mistakes, not against someone who deliberately switches shelter or role in the sidebar. Real use would need real accounts, with the shelter and the role taken from the account.
+- Because there is no login, these rules protect against honest mistakes, not against someone who deliberately switches shelter in the sidebar. Real use would need real accounts, with the shelter taken from the account.
 
 ## 6. Data model
 
@@ -251,18 +265,6 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - closed_reason (accepted, other)
 - created_at
 
-**group_movements**
-- id
-- origin_place
-- departed_day
-- departed_part
-- transport
-- agency
-- destination_shelter_id
-- notes
-- names (text, optional list)
-- created_at
-
 **matches**
 - id
 - search_id
@@ -280,7 +282,7 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 - match_id
 - from_shelter_id
 - to_shelter_id
-- routed_to (shelter or coordinator)
+- routed_to (shelter, or review for minors and people who need help deciding)
 - message
 - photo_file (nullable, random file name, cleared on decision)
 - status (pending, accepted, declined)
@@ -289,8 +291,8 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 
 **notifications**
 - id
-- shelter_id (nullable, null means coordinator)
-- kind (match_alert, contact_request, review_needed, reunion, email, sms)
+- shelter_id (the shelter the alert or message is for)
+- kind (match_alert, reunion, email)
 - text
 - to_address (nullable, for simulated email or SMS)
 - match_id (nullable)
@@ -302,9 +304,9 @@ SQLite, one `schema.sql`. All ids are integers. Timestamps are ISO text.
 
 - Backend: Node.js, Express, plain JavaScript. `better-sqlite3`, one file in `server/data/`.
 - Frontend: React, Vite, React Router. One CSS file with variables. No Tailwind, no component library, no state manager.
-- Session: `express-session`, in-memory store. It only remembers which shelter and role the browser chose.
+- Session: `express-session`, in-memory store. It only remembers which shelter the browser chose.
 - Production: Express serves the React build and the API in one process. PM2 keeps it alive, nginx reverse-proxies `dali.bruno.com.es` with a certbot certificate. I will ask before touching any of these.
-- Simulated on purpose: email and SMS, paper list import ("Coming soon"). There is no authentication. Witness sightings and status changes appear only in the README as next steps.
+- Simulated on purpose: email (saved and logged, nothing is sent). There is no authentication. Witness sightings and status changes appear only in the README as next steps.
 
 ## 8. Visual design
 
@@ -322,19 +324,19 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 
 `server/seed.js` creates 3 shelters, about 40 people and these cases:
 
-1. An 8-year-old child from Lincoln Elementary, taken by school bus to one shelter. His mother searches from another shelter. A group transfer is registered for that bus.
-2. An 81-year-old mother moved from a care home by another agency to a hotel, flagged "needs assistance". Her daughter searches for her. The request goes to the coordinator.
+1. An 8-year-old child from Lincoln Elementary, registered at one shelter without a name. His mother searches from another shelter. Only the last known place, his age and his red backpack connect them, so the match waits in "Needs review".
+2. An 81-year-old mother moved from a care home by another agency to a hotel, flagged "needs assistance". Her daughter searches for her. The contact request goes to "Needs review" instead of to her.
 3. A couple searching for each other (reciprocal).
 4. A person registered under an alias.
 5. A case where the sought person declines contact.
-6. A husband "rescued later": not in the seed, but his wife has an open search. The coordinator button "Demo: register late arrival" registers him and triggers the alert live.
+6. A husband "rescued later": not in the seed, but his wife has an open search. The sidebar button "Register late arrival" registers him and triggers the alert live.
 
 "Reset demo data" rebuilds all of this.
 
 ## 10. Decisions I made that you may want to change
 
-- The role toggle is available to everyone: a coordinator is just a role chosen in the sidebar, and it sees everything.
+- There are no roles. "Needs review" is open to every shelter, and any shelter can decide a request for a minor or a person who needs help deciding.
 - Last place is free text with autocomplete from existing values; there is no separate places table.
 - The searcher is stored as a normal row in `people`, so reciprocal detection is a simple lookup.
 - Match `state` is a single column instead of separate tables for review and alerts.
-- Alerts and pending requests live in the sidebar. This shelter's open searches are listed at the bottom of the Search page, below the form, so Home stays at two buttons.
+- "Needs your attention" is its own page, opened from a sidebar item with a count badge. This shelter's open searches are listed at the top of the Search page, so Home stays at two buttons.

@@ -20,8 +20,7 @@ router.get('/places', (req, res) => {
   const rows = db.prepare(`
     SELECT place FROM (
       SELECT last_place AS place FROM people UNION
-      SELECT last_place FROM searches UNION
-      SELECT origin_place FROM group_movements
+      SELECT last_place FROM searches
     ) WHERE place IS NOT NULL AND place LIKE ? ORDER BY place LIMIT 8
   `).all(q)
   res.json(rows.map((r) => r.place))

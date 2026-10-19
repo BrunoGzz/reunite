@@ -29,9 +29,9 @@ router.post('/matches/:id/request', upload.single('photo'), (req, res) => {
   res.json({ id })
 })
 
-// Requests that arrived at this shelter (or at the coordinator) and ones this shelter sent.
+// Requests that arrived at this shelter and ones this shelter sent. Requests for minors and people who
+// need help deciding are under "Needs review" instead.
 router.get('/requests', (req, res) => {
-  const isCoordinator = req.session.role === 'coordinator'
   const incoming = db.prepare(`
     SELECT r.id, r.message, r.photo_file IS NOT NULL AS has_photo, r.routed_to, r.created_at,
       target.name AS person_name, target.is_minor, target.needs_assistance, searcher.name AS searcher_name
@@ -40,10 +40,9 @@ router.get('/requests', (req, res) => {
     JOIN people target ON target.id = m.person_id
     JOIN searches s ON s.id = m.search_id
     JOIN people searcher ON searcher.id = s.searcher_person_id
-    WHERE r.status = 'pending'
-      AND ((r.routed_to = 'shelter' AND r.to_shelter_id = @shelter) OR (r.routed_to = 'coordinator' AND @coordinator = 1))
+    WHERE r.status = 'pending' AND r.routed_to = 'shelter' AND r.to_shelter_id = ?
     ORDER BY r.created_at
-  `).all({ shelter: req.session.shelterId, coordinator: isCoordinator ? 1 : 0 })
+  `).all(req.session.shelterId)
 
   const sent = db.prepare(`
     SELECT r.id, r.status, r.created_at, s.name AS sought_name
@@ -57,9 +56,7 @@ router.get('/requests', (req, res) => {
 router.post('/requests/:id/decide', (req, res) => {
   const request = db.prepare("SELECT * FROM contact_requests WHERE id = ? AND status = 'pending'").get(req.params.id)
   if (!request) return res.status(404).json({ error: 'Request not found' })
-  const allowed = request.routed_to === 'coordinator'
-    ? req.session.role === 'coordinator'
-    : request.to_shelter_id === req.session.shelterId
+  const allowed = request.routed_to === 'review' || request.to_shelter_id === req.session.shelterId
   if (!allowed) return res.status(403).json({ error: 'This request is not for you' })
 
   const accept = req.body.decision === 'accept'
@@ -74,7 +71,7 @@ router.post('/requests/:id/decide', (req, res) => {
 router.get('/photos/:id', (req, res) => {
   const request = db.prepare('SELECT * FROM contact_requests WHERE id = ?').get(req.params.id)
   if (!request || !request.photo_file) return res.status(404).end()
-  const allowed = req.session.role === 'coordinator' || request.to_shelter_id === req.session.shelterId
+  const allowed = request.routed_to === 'review' || request.to_shelter_id === req.session.shelterId
   if (!allowed) return res.status(403).end()
   res.sendFile(path.join(photoDir, request.photo_file), { cacheControl: false, etag: false, lastModified: false })
 })

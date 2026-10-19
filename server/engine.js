@@ -38,10 +38,6 @@ function insertRow(table, row) {
   return db.prepare(sql).run(row).lastInsertRowid
 }
 
-export function getMovements() {
-  return db.prepare('SELECT * FROM group_movements').all()
-}
-
 export function addPerson(input, shelterId) {
   const data = cleanDescription(input)
   const row = {
@@ -79,9 +75,9 @@ export function notify({ shelterId = null, kind, text, matchId = null, requestId
 }
 
 // Simulated email: saved, logged, shown in the UI. Nothing is really sent.
-function sendEmail(address, text) {
+function sendEmail(shelterId, address, text) {
   console.log(`[email to ${address}] ${text}`)
-  notify({ kind: 'email', text: `Email sent to ${address}`, toAddress: address })
+  notify({ shelterId, kind: 'email', text: `Email sent to ${address}`, toAddress: address })
 }
 
 function upsertMatch(search, person, result, isReciprocal) {
@@ -96,11 +92,11 @@ function upsertMatch(search, person, result, isReciprocal) {
 }
 
 // If the candidate is also looking for the searcher, returns the candidate's own search.
-function reciprocalSearch(search, person, movements) {
+function reciprocalSearch(search, person) {
   const searcher = db.prepare('SELECT * FROM people WHERE id = ?').get(search.searcher_person_id)
   const theirs = db.prepare("SELECT * FROM searches WHERE status = 'open' AND searcher_person_id = ?").all(person.id)
   for (const other of theirs) {
-    const result = scoreMatch(other, searcher, movements)
+    const result = scoreMatch(other, searcher)
     if (result.score >= RECIPROCAL_MIN) return { search: other, searcher, result }
   }
   return null
@@ -136,8 +132,7 @@ function raiseAlertIfStrong(match, search, person, recip, fromNewSearch) {
   if (match.score < ALERT_MIN || match.state !== 'new') return
   const nameKnown = match.name_score !== null
   if (!nameKnown) {
-    db.prepare("UPDATE matches SET state = 'needs_review' WHERE id = ?").run(match.id)
-    notify({ shelterId: null, kind: 'review_needed', text: 'A possible match without names needs review', matchId: match.id })
+    db.prepare("UPDATE matches SET state = 'needs_review' WHERE id = ?").run(match.id) // shows up under "Needs review"
     return
   }
   if (match.name_score < NAME_MIN) return
@@ -164,12 +159,11 @@ export function alertShelters(match, search, person, recip) {
 
 // Runs a search and stores the matches. Returns the saved match rows above SHOW_MIN.
 export function runSearch(search) {
-  const movements = getMovements()
   const saved = []
   for (const person of candidatesFor(search)) {
-    const result = scoreMatch(search, person, movements)
+    const result = scoreMatch(search, person)
     if (result.score < SHOW_MIN) continue
-    const recip = reciprocalSearch(search, person, movements)
+    const recip = reciprocalSearch(search, person)
     const match = upsertMatch(search, person, result, !!recip)
     raiseAlertIfStrong(match, search, person, recip, true)
     saved.push(match)
@@ -179,11 +173,10 @@ export function runSearch(search) {
 
 // Called when a new person is registered: compares them with all open searches.
 export function matchNewPerson(person) {
-  const movements = getMovements()
   for (const search of openSearchesFor(person)) {
-    const result = scoreMatch(search, person, movements)
+    const result = scoreMatch(search, person)
     if (result.score < SHOW_MIN) continue
-    const recip = reciprocalSearch(search, person, movements)
+    const recip = reciprocalSearch(search, person)
     const match = upsertMatch(search, person, result, !!recip)
     raiseAlertIfStrong(match, search, person, recip, false)
   }
@@ -194,7 +187,7 @@ export function approveMatch(matchId) {
   if (!match || match.state !== 'needs_review') return null
   const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
   const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
-  const recip = match.is_reciprocal ? reciprocalSearch(search, person, getMovements()) : null
+  const recip = match.is_reciprocal ? reciprocalSearch(search, person) : null
   alertShelters(match, search, person, recip)
   return match
 }
@@ -254,7 +247,7 @@ export function needsPhoto(match) {
   if (match.score < ALERT_MIN) return true
   const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
   const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
-  const recip = reciprocalSearch(search, person, getMovements())
+  const recip = reciprocalSearch(search, person)
   return !(recip && recip.result.score >= ALERT_MIN)
 }
 
@@ -289,22 +282,17 @@ export function createRequest({ match, message, photo }) {
     })
   }
 
+  // Minors and people who need help deciding are not asked directly: their request goes to "Needs review".
   const special = person.is_minor || person.needs_assistance
   const id = insertRow('contact_requests', {
     match_id: match.id,
     from_shelter_id: search.shelter_id,
     to_shelter_id: person.shelter_id,
-    routed_to: special ? 'coordinator' : 'shelter',
+    routed_to: special ? 'review' : 'shelter',
     message: message || null,
     photo_file: savePhoto(photo),
     status: 'pending',
     created_at: now(),
-  })
-  notify({
-    shelterId: special ? null : person.shelter_id,
-    kind: 'contact_request',
-    text: special ? 'A contact request needs a coordinator decision' : 'Someone wants to contact a person at your shelter',
-    matchId: match.id, requestId: id,
   })
   return id
 }
@@ -321,12 +309,12 @@ export function acceptRequest(request) {
 
   // Also close the found person's own search for the searcher, if there is one.
   // Other relatives' searches stay open: they may still need this person.
-  const theirs = reciprocalSearch(search, person, getMovements())
+  const theirs = reciprocalSearch(search, person)
   if (theirs) db.prepare("UPDATE searches SET status = 'closed', closed_reason = 'accepted' WHERE id = ?").run(theirs.search.id)
 
   notify({ shelterId: search.shelter_id, kind: 'reunion', matchId: match.id, text: `Contact accepted. ${person.name || 'The person'} can be found at ${placeLine(person.shelter_id)}` })
   notify({ shelterId: person.shelter_id, kind: 'reunion', matchId: match.id, text: `Contact accepted. ${searcher.name || 'The family'} is at ${placeLine(search.shelter_id)}` })
   if (search.email_opt_in && search.email) {
-    sendEmail(search.email, `Good news: ${person.name || 'the person you are looking for'} accepted contact. Ask the volunteer at ${shelterInfo(search.shelter_id).name} for details.`)
+    sendEmail(search.shelter_id, search.email, `Good news: ${person.name || 'the person you are looking for'} accepted contact. Ask the volunteer at ${shelterInfo(search.shelter_id).name} for details.`)
   }
 }

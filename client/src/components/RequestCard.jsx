@@ -32,9 +32,9 @@ export default function RequestCard({ request, onDecided }) {
         <div className="summary">Someone wants to contact {request.person_name || 'a person here'}</div>
         <p>From: {request.searcher_name || 'a family member'}</p>
         {request.message && <p>"{request.message}"</p>}
-        {request.routed_to === 'coordinator' && (
-          <p>{request.is_minor ? <span className="tag">Minor</span> : null} {request.needs_assistance ? <span className="tag">Needs assistance</span> : null} The coordinator decides for this person.</p>
-        )}
+        {(request.is_minor || request.needs_assistance) ? (
+          <p>{request.is_minor ? <span className="tag">Minor</span> : null}{request.needs_assistance ? <span className="tag">Needs assistance</span> : null}</p>
+        ) : null}
         {error && <p className="error">{error}</p>}
         {!confirming && (
           <div className="row">

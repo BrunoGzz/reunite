@@ -48,19 +48,6 @@ CREATE TABLE IF NOT EXISTS searches (
   created_at TEXT NOT NULL
 );
 
-CREATE TABLE IF NOT EXISTS group_movements (
-  id INTEGER PRIMARY KEY,
-  origin_place TEXT NOT NULL,
-  departed_day TEXT,
-  departed_part TEXT,
-  transport TEXT,
-  agency TEXT,
-  destination_shelter_id INTEGER NOT NULL REFERENCES shelters(id),
-  notes TEXT,
-  names TEXT,
-  created_at TEXT NOT NULL
-);
-
 CREATE TABLE IF NOT EXISTS matches (
   id INTEGER PRIMARY KEY,
   search_id INTEGER NOT NULL REFERENCES searches(id),
@@ -79,7 +66,7 @@ CREATE TABLE IF NOT EXISTS contact_requests (
   match_id INTEGER NOT NULL REFERENCES matches(id),
   from_shelter_id INTEGER NOT NULL REFERENCES shelters(id),
   to_shelter_id INTEGER NOT NULL REFERENCES shelters(id),
-  routed_to TEXT NOT NULL DEFAULT 'shelter',
+  routed_to TEXT NOT NULL DEFAULT 'shelter', -- 'shelter', or 'review' for minors and people who need help deciding
   message TEXT,
   photo_file TEXT,
   status TEXT NOT NULL DEFAULT 'pending',

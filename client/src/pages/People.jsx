@@ -5,7 +5,6 @@ import { get } from '../api.js'
 export default function People() {
   const [people, setPeople] = useState(null)
   const [filter, setFilter] = useState('')
-  const [soon, setSoon] = useState(false)
 
   useEffect(() => { get('/api/people').then(setPeople) }, [])
 
@@ -14,16 +13,8 @@ export default function People() {
 
   return (
     <>
-      <div className="row spread">
-        <div>
-          <h1>People here</h1>
-          <p className="subtitle">Everyone registered at this shelter.</p>
-        </div>
-        <div className="row">
-          <button className="btn secondary" onClick={() => setSoon(true)}>Import paper list</button>
-          {soon && <span className="muted">Coming soon</span>}
-        </div>
-      </div>
+      <h1>People here</h1>
+      <p className="subtitle">Everyone registered at this shelter.</p>
 
       <input className="search-box" placeholder="Search by name" value={filter} onChange={(e) => setFilter(e.target.value)} />
 

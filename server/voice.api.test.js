@@ -58,7 +58,7 @@ const base = `http://127.0.0.1:${server.address().port}`
 test.after(() => { server.close(); mock.close() })
 
 const login = async () => {
-  const res = await fetch(`${base}/api/session`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ shelterId: 1, role: 'volunteer' }) })
+  const res = await fetch(`${base}/api/session`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ shelterId: 1 }) })
   return res.headers.getSetCookie()[0].split(';')[0]
 }
 

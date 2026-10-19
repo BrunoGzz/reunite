@@ -1,6 +1,6 @@
 // Pure matching functions. No database access here.
 
-const WEIGHTS = { name: 35, route: 25, age: 15, marks: 15, looks: 10 }
+const WEIGHTS = { name: 35, place: 25, age: 15, marks: 15, looks: 10 }
 
 // Below this much total weight we shrink the score, so one lone matching
 // field (for example only a name) cannot look like a near-certain match.
@@ -121,32 +121,9 @@ function looksSimilarity(wanted, person) {
   return { value: same.length / checks.length, labels: same.map((c) => c.label) }
 }
 
-function dayGap(dayA, dayB) {
-  if (!dayA || !dayB) return 0
-  return Math.abs(new Date(dayA) - new Date(dayB)) / 86400000
-}
-
-// A group transfer connects the two when it left from the place the family
-// last saw the person, around the same time, and the candidate is at its
-// destination shelter or arrived by the same kind of transport.
-export function findConnectingMovement(wanted, person, movements) {
-  if (!wanted.last_place) return null
-  return movements.find((m) => {
-    const placeOk = (tokenSimilarity(wanted.last_place, m.origin_place) || 0) >= 0.85
-    const timeOk = dayGap(wanted.last_seen_day, m.departed_day) <= 2
-    const arrivedThere = person.shelter_id === m.destination_shelter_id
-    const sameTransport = m.transport && person.arrival_method && normalize(m.transport) === normalize(person.arrival_method)
-    return placeOk && timeOk && (arrivedThere || sameTransport)
-  }) || null
-}
-
-function vehicleName(transport) {
-  return ['bus', 'boat', 'ambulance'].includes(transport) ? `a ${transport}` : 'a group transfer'
-}
-
 // wanted: the description in a search. person: a registered person.
 // Returns { score (0-100), nameScore (0-1 or null), reasons: [text] }.
-export function scoreMatch(wanted, person, movements = []) {
+export function scoreMatch(wanted, person) {
   const none = { score: 0, nameScore: null, reasons: [] }
   if (known(wanted.sex) && known(person.sex) && wanted.sex !== person.sex) return none
 
@@ -159,14 +136,10 @@ export function scoreMatch(wanted, person, movements = []) {
     if (nameScore >= 0.8) reasons.push(`Name similar (${Math.round(nameScore * 100)}%)`)
   }
 
-  const movement = findConnectingMovement(wanted, person, movements)
   const placeScore = tokenSimilarity(wanted.last_place, person.last_place)
-  if (placeScore !== null || movement) {
-    let value = placeScore || 0
-    if (movement) value = Math.max(value, 0.85)
-    parts.push({ weight: WEIGHTS.route, value })
-    if (placeScore !== null && placeScore >= 0.85) reasons.push(`Same last known place: ${wanted.last_place}`)
-    if (movement) reasons.push(`Arrived by ${vehicleName(movement.transport)} that left from that place`)
+  if (placeScore !== null) {
+    parts.push({ weight: WEIGHTS.place, value: placeScore })
+    if (placeScore >= 0.85) reasons.push(`Same last known place: ${wanted.last_place}`)
   }
 
   const ageScore = ageSimilarity(wanted.age, person.age)
