@@ -46,11 +46,11 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Home](docs/screenshots/home.png)
 
-**Needs attention** is one page for everything that needs a person: new matches, reunion notices, and the review queue (matches without a name, and requests for children or people who need help deciding). The sidebar item shows one count.
+**Needs attention** is one page for everything that needs a person: new matches, reunion notices, and the review queue (matches without a name, and requests for children or people who need help deciding). The sidebar item shows one count. Alerts that were already viewed stay on the page, greyed out, under "Earlier".
 
 ![Needs attention](docs/screenshots/attention.png)
 
-**Search** starts with this shelter's open searches, each with its best score and whether a request is pending. Below them is the new-search form.
+**Search** starts with the microphone and the new-search form. Below them are this shelter's open searches, each with its best score and whether a request is pending.
 
 ![Search](docs/screenshots/search.png)
 

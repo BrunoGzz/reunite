@@ -26,7 +26,7 @@ export default function OpenSearches() {
   return (
     <section className="open-searches">
       <h2>Open searches</h2>
-      {searches.length === 0 && <div className="empty">No open searches yet. Start one below with the microphone.</div>}
+      {searches.length === 0 && <div className="empty">No open searches yet. Start one above with the microphone.</div>}
       {searches.map((s) => (
         <Link to={`/searches/${s.id}`} className="open-search" key={s.id}>
           <div className="open-main">

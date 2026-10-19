@@ -113,7 +113,7 @@ There is no status field (present, transferred, left). Everyone registered is si
   - never the candidate's full name or shelter
 - The search stays saved as open. The page says so: "This search stays open. You will get an alert if someone new matches."
 - Empty state: "No possible matches yet. We will keep looking and alert you."
-- "Open searches" at the top of the page, above the new-search form: a simple list of this shelter's open searches. Each row shows who is looking and who they are looking for ("Elena Delgado is looking for Rosa Delgado"), a short description (sex, age, last place), the best current score, and "Pending confirmation" if a contact request was sent. A request that was declined also reads "Pending confirmation", so a decline stays invisible here too. Clicking a row opens its results again. Empty state: "No open searches yet. Start one below with the microphone."
+- "Open searches" at the bottom of the page, below the microphone and the new-search form: a simple list of this shelter's open searches. Each row shows who is looking and who they are looking for ("Elena Delgado is looking for Rosa Delgado"), a short description (sex, age, last place), the best current score, and "Pending confirmation" if a contact request was sent. A request that was declined also reads "Pending confirmation", so a decline stays invisible here too. Clicking a row opens its results again. Empty state: "No open searches yet. Start one above with the microphone."
 
 ### 4.5 Contact request (modal from a result)
 
@@ -146,11 +146,12 @@ What happens on each decision:
 
 One sidebar item and one page, with one count badge for everything on it (new alerts plus review items). Contact requests waiting at this shelter are not repeated here: Requests has its own badge.
 
-- New alerts for this shelter ("Possible match found for your search for Maria Lopez", "Reciprocal match found for your search for Tanya Hill"), each with an "Open" button that goes to that search's results.
+- New alerts for this shelter, each with a title ("Possible match found for your search for Maria Lopez", "Reciprocal match found for your search for Tanya Hill"), one line under it ("Someone may match the person Elena Delgado is looking for.") and a "View results" button that goes to that search's results.
 - Reunion notices ("Contact accepted. ..."), each with a "Got it" button.
 - "To review", shown when there is something to review. It is open to every shelter and holds:
   - matches without a name on one side (score 85% or more). Each shows both descriptions side by side: what the family is looking for, and the registered person's sex, age, last place and marks. The shelter where the registered person is is never shown. Buttons: "Approve and alert" (creates the alert for the searcher's shelter) and "Not a match";
   - contact requests for minors and for people flagged "needs assistance": the same card as in Requests (photo, message, Accept or Decline).
+- "Earlier": alerts that were already viewed stay on the page, greyed out, below the new ones (the 20 most recent), so it is always clear where they went. Match alerts there still have a "View results" button. Viewing an alert moves it from the new ones to "Earlier" and lowers the count.
 - "Recent messages": the simulated emails sent for this shelter's searches ("Email sent to ...").
 - Empty state: "You are all caught up. New matches and items to review will appear here."
 
@@ -329,4 +330,4 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 - Last place is free text with autocomplete from existing values; there is no separate places table.
 - The searcher is stored as a normal row in `people`, so reciprocal detection is a simple lookup.
 - Match `state` is a single column instead of separate tables for review and alerts.
-- "Needs attention" is one sidebar item and page, with a single count badge, for new alerts and the review queue. This shelter's open searches are listed at the top of the Search page, so Home stays at two buttons.
+- "Needs attention" is one sidebar item and page, with a single count badge, for new alerts and the review queue. This shelter's open searches are listed at the bottom of the Search page, so the microphone and the new-search form come first and Home stays at two buttons.

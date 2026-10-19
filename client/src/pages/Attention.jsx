@@ -19,9 +19,12 @@ export default function Attention() {
     return () => clearInterval(timer)
   }, [])
 
-  async function open(alert) {
-    await post(`/api/notifications/${alert.id}/read`)
-    refresh()
+  // Viewing an alert marks it as read. It then moves to "Earlier" instead of disappearing.
+  async function view(alert, isEarlier) {
+    if (!isEarlier) {
+      await post(`/api/notifications/${alert.id}/read`)
+      refresh()
+    }
     if (alert.kind === 'match_alert') navigate(`/searches/${alert.search_id}`)
   }
 
@@ -32,7 +35,7 @@ export default function Attention() {
   }
 
   if (!attention || !queue) return null
-  const { alerts, emails } = attention
+  const { alerts, earlier, emails } = attention
   const requests = [...queue.requests, ...Object.values(decided).filter((d) => !queue.requests.some((r) => r.id === d.id))]
   const toReview = queue.matches.length + queue.requests.length
 
@@ -43,15 +46,7 @@ export default function Attention() {
 
       {alerts.length === 0 && toReview === 0 && <div className="empty">You are all caught up. New matches and items to review will appear here.</div>}
 
-      {alerts.map((a) => (
-        <div className="attn-row" key={a.id}>
-          <span className="attn-icon big">{a.kind === 'reunion' ? <Check size={22} /> : <UserSearch size={22} />}</span>
-          <span className="grow">{a.text}</span>
-          {a.kind === 'reunion'
-            ? <button className="btn secondary" onClick={() => open(a)}>Got it</button>
-            : <button className="btn" onClick={() => open(a)}>Open</button>}
-        </div>
-      ))}
+      {alerts.map((a) => <AlertRow key={a.id} alert={a} onView={view} />)}
 
       {toReview > 0 && (
         <>
@@ -86,6 +81,13 @@ export default function Attention() {
 
       {requests.map((r) => <RequestCard key={r.id} request={r} onDecided={() => { setDecided((d) => ({ ...d, [r.id]: r })); loadQueue(); refresh() }} />)}
 
+      {earlier.length > 0 && (
+        <>
+          <h2>Earlier</h2>
+          {earlier.map((a) => <AlertRow key={a.id} alert={a} earlier onView={view} />)}
+        </>
+      )}
+
       {emails.length > 0 && (
         <>
           <h2>Recent messages</h2>
@@ -93,5 +95,21 @@ export default function Attention() {
         </>
       )}
     </>
+  )
+}
+
+// One alert. Earlier ones are greyed out but still lead to the results.
+function AlertRow({ alert, earlier = false, onView }) {
+  const isMatch = alert.kind === 'match_alert'
+  return (
+    <div className={'attn-row' + (earlier ? ' earlier' : '')}>
+      <span className="attn-icon big">{isMatch ? <UserSearch size={22} /> : <Check size={22} />}</span>
+      <span className="grow">
+        <span className="attn-title">{alert.text}</span>
+        {isMatch && <span className="attn-sub">Someone may match the person {alert.searcher_name || 'a family member'} is looking for.</span>}
+      </span>
+      {isMatch && <button className={'btn' + (earlier ? ' secondary' : '')} onClick={() => onView(alert, earlier)}>View results</button>}
+      {!isMatch && !earlier && <button className="btn secondary" onClick={() => onView(alert, false)}>Got it</button>}
+    </div>
   )
 }

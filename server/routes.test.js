@@ -185,6 +185,32 @@ test('attention: alerts and waiting requests are for this shelter only', async (
   assert.equal((await api(await cookieFor(1), 'GET', '/attention')).body.emails.length, 0)
 })
 
+test('read alerts move to Earlier instead of disappearing, and match alerts name the searcher', async () => {
+  const river = await cookieFor(1)
+  const before = (await api(river, 'GET', '/attention')).body
+  const rosa = before.alerts.find((a) => a.text.includes('Rosa Delgado'))
+  assert.equal(rosa.searcher_name, 'Elena Delgado')
+  assert.ok(rosa.search_id)
+  assert.ok(!before.earlier.some((a) => a.id === rosa.id))
+
+  assert.equal((await api(river, 'POST', `/notifications/${rosa.id}/read`)).status, 200)
+  const after = (await api(river, 'GET', '/attention')).body
+  assert.ok(!after.alerts.some((a) => a.id === rosa.id)) // no longer new, so it no longer counts
+  const kept = after.earlier.find((a) => a.id === rosa.id)
+  assert.equal(kept.text, rosa.text)
+  assert.equal(kept.search_id, rosa.search_id) // still possible to view its results
+  assert.equal(kept.searcher_name, 'Elena Delgado')
+  assert.ok(!(await api(await cookieFor(2), 'GET', '/attention')).body.earlier.some((a) => a.id === rosa.id)) // other shelters never see it
+
+  // Only the 20 most recent read alerts are kept.
+  const match = db.prepare('SELECT id FROM matches LIMIT 1').get().id
+  for (let i = 0; i < 25; i++) engine.notify({ shelterId: 1, kind: 'match_alert', text: `Old alert ${i}`, matchId: match })
+  db.prepare("UPDATE notifications SET is_read = 1 WHERE shelter_id = 1 AND text LIKE 'Old alert %'").run()
+  const many = (await api(river, 'GET', '/attention')).body
+  assert.equal(many.earlier.length, 20)
+  assert.equal(many.alerts.length, before.alerts.length - 1)
+})
+
 for (const row of ROWS) {
   test(`${row.method} ${row.pattern}`, async () => {
     for (const who of ['none', 'session']) {
