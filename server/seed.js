@@ -5,15 +5,6 @@ import { fileURLToPath } from 'node:url'
 import db, { now, photoDir } from './db.js'
 import { addPerson, addSearch, runSearch, matchNewPerson, createRequest } from './engine.js'
 
-// Registered live by the "Register late arrival" button, so the automatic alert can be seen happening.
-export const LATE_ARRIVAL = {
-  shelter: "St. Mary's Community Center",
-  person: {
-    name: 'Tom Whitaker', sex: 'male', age: 58, height: 'tall', hair_color: 'gray',
-    marks: 'gray beard, bandaged left hand', languages: 'English', last_place: 'Pelican Street',
-  },
-}
-
 const SHELTERS = [
   { name: 'Riverside High School Shelter', address: '120 River Road, Gym entrance', phone: '555-0101', instructions: 'Come to the front desk and ask for the reunification table. Bring this reference if you have it.' },
   { name: "St. Mary's Community Center", address: '48 Church Street, Main hall', phone: '555-0102', instructions: 'Ask for the volunteer lead at the entrance. Families are reunited in the side room.' },
@@ -75,7 +66,8 @@ export function seed() {
   const victorSearch = addSearch({ shelterId: riverside, searcherPersonId: victor.id,
     target: { name: 'Maria Santos', sex: 'female', age: 36, last_place: 'Harbor Mall' } })
 
-  // Case 6: the husband rescued later. Only the wife's open search exists.
+  // Case 6: the husband rescued later. He is not registered anywhere yet, only his wife's search for him is open.
+  // Registering Tom Whitaker at any other shelter makes her search light up.
   const nora = addPerson({ name: 'Nora Whitaker', sex: 'female', age: 55, last_place: 'Pelican Street' }, harbor)
   const wifeSearch = addSearch({ shelterId: harbor, searcherPersonId: nora.id,
     target: { name: 'Tom Whitaker', sex: 'male', age: 58, last_place: 'Pelican Street', marks: 'gray beard' } })

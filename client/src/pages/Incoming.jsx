@@ -61,16 +61,18 @@ function ConfirmCard({ match: m, onDone }) {
     onDone()
   }
 
-  if (done) return <div className="card"><p>{done === 'confirm' ? 'Confirmed. The family has been alerted.' : 'Dismissed. Nobody was told.'}</p></div>
+  const savesName = !m.person_name && m.sought_name
+  if (done) return <div className="card"><p>{done === 'confirm' ? `Confirmed. ${savesName ? `The name ${m.sought_name} was saved on this person's record. ` : ''}The family has been alerted.` : 'Dismissed. Nobody was told.'}</p></div>
 
   return (
     <div className="card">
       <div className="summary">Possible match to confirm ({m.score}%)</div>
-      <p className="muted">Someone describes a person who may be registered here. Check it against what you know.</p>
+      {m.sought_name && <div className="may-be">May be: <strong>{m.sought_name}</strong></div>}
+      <p className="muted">Someone describes a person who may be registered here. Check {m.sought_name ? 'the name with the person' : 'it against what you know'}.</p>
       <div className="columns">
         <div>
           <div className="muted">The family describes</div>
-          <div>{m.sought_name || 'Unnamed'}, {m.sought_sex}, age {m.sought_age ?? 'unknown'}</div>
+          <div>{m.sought_sex}, age {m.sought_age ?? 'unknown'}</div>
           <div>Last place: {m.sought_place || 'unknown'}</div>
         </div>
         <div>

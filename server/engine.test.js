@@ -133,3 +133,26 @@ test('accepting marks the found person\'s own search as reunited too, with its o
   assert.ok(notices(1).includes(match.id))
   assert.ok(notices(2).includes(hers.id))
 })
+
+test('confirming a no-name match saves the name from the search on the person, and never overwrites a name', () => {
+  // The registered child has no name; the family says he is Leo Martinez.
+  const leo = engine.addPerson({ sex: 'male', age: 7, marks: 'blue cast on left arm', last_place: 'Maple Elementary' }, 1)
+  const mom = engine.addPerson({ name: 'Rosa Martinez', sex: 'female', age: 34 }, 2)
+  const s1 = engine.addSearch({ shelterId: 2, searcherPersonId: mom.id, target: { name: 'Leo Martinez', sex: 'male', age: 7, marks: 'blue cast on left arm', last_place: 'Maple Elementary' } })
+  engine.runSearch(s1)
+  const m1 = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(s1.id, leo.id)
+  assert.equal(m1.state, 'needs_review')
+  assert.equal(db.prepare('SELECT name FROM people WHERE id = ?').get(leo.id).name, null) // nothing is saved before staff confirms
+  engine.approveMatch(m1.id)
+  assert.equal(db.prepare('SELECT name FROM people WHERE id = ?').get(leo.id).name, 'Leo Martinez')
+
+  // The other way round: the person has a name, the search has none. Confirming keeps the registered name.
+  const ana = engine.addPerson({ name: 'Ana Quintero', sex: 'female', age: 41, marks: 'scar on chin', last_place: 'Birch Street' }, 1)
+  const sib = engine.addPerson({ name: 'Eva Quintero', sex: 'female', age: 38 }, 2)
+  const s2 = engine.addSearch({ shelterId: 2, searcherPersonId: sib.id, target: { sex: 'female', age: 41, marks: 'scar on chin', last_place: 'Birch Street' } })
+  engine.runSearch(s2)
+  const m2 = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(s2.id, ana.id)
+  assert.equal(m2.state, 'needs_review')
+  engine.approveMatch(m2.id)
+  assert.equal(db.prepare('SELECT name FROM people WHERE id = ?').get(ana.id).name, 'Ana Quintero')
+})

@@ -53,7 +53,6 @@ const ROWS = [
   { method: 'GET', pattern: '/voice/status', url: '/voice/status', none: 401, session: 200 },
   { method: 'POST', pattern: '/voice', url: '/voice', body: {}, none: 401, session: 503 },
   // These change data, so they run last.
-  { method: 'POST', pattern: '/demo/late-arrival', url: '/demo/late-arrival', body: {}, none: 401, session: 200 },
   { method: 'POST', pattern: '/demo/reset', url: '/demo/reset', body: {}, none: 401, session: 200 },
 ]
 
@@ -155,6 +154,7 @@ test('Our searches: the card holds the reunion, with the location and the simula
   assert.equal(reunited.status, 'closed')
   assert.equal(reunited.reunion.shelter.name, 'Riverside High School Shelter')
   assert.ok(reunited.reunion.shelter.address && reunited.reunion.shelter.phone && reunited.reunion.shelter.instructions)
+  assert.equal(reunited.reunion.person_name, 'Daniel Reyes') // the name was saved when staff confirmed the match
   assert.equal(reunited.email, 'Email sent to carla.reyes@example.com')
   assert.equal(reunited.new_activity, true) // until she opens it
   await api(marys, 'POST', `/searches/${reunited.id}/seen`)
@@ -210,7 +210,7 @@ test('possible matches to confirm: only the shelter where the person is register
   assert.equal(match.state, 'needs_review')
 
   const mine = (await api(river, 'GET', '/incoming')).body.toConfirm.find((m) => m.id === match.id)
-  assert.equal(mine.sought_name, 'Mia Gil')
+  assert.equal(mine.sought_name, 'Mia Gil') // "May be: Mia Gil", for staff to check with the child
   assert.equal(mine.person_name, null)
   assert.equal(mine.person_place, 'Oak Elementary')
   assert.ok(!JSON.stringify(mine).includes('shelter') && !JSON.stringify(mine).includes('Paula'), 'neither the searcher nor the searcher\'s shelter is shown')
@@ -227,12 +227,16 @@ test('possible matches to confirm: only the shelter where the person is register
     assert.equal((await api(cookie, 'POST', `/matches/${match.id}/dismiss`)).status, 403)
   }
   assert.equal(db.prepare('SELECT state FROM matches WHERE id = ?').get(match.id).state, 'needs_review')
+  assert.equal(db.prepare('SELECT name FROM people WHERE id = ?').get(mia.id).name, null) // and nobody else could name her
   assert.ok(!(await cards(2)).find((c) => c.id === search.id).new_activity)
 
   // Confirming alerts the searcher's shelter, and the item is gone for good.
   assert.equal((await api(river, 'POST', `/matches/${match.id}/confirm`)).status, 200)
   assert.equal((await cards(2)).find((c) => c.id === search.id).new_activity, true)
   assert.ok(!(await api(river, 'GET', '/incoming')).body.toConfirm.some((m) => m.id === match.id))
+  // Confirming saves the name from the search on the registered person's record.
+  assert.equal(db.prepare('SELECT name FROM people WHERE id = ?').get(mia.id).name, 'Mia Gil')
+  assert.ok((await api(river, 'GET', '/people')).body.some((p) => p.id === mia.id && p.name === 'Mia Gil'))
   assert.equal((await api(river, 'POST', `/matches/${match.id}/confirm`)).status, 404)
 })
 
@@ -245,6 +249,7 @@ test('dismissing a possible match removes it without alerting anyone', async () 
   const match = db.prepare('SELECT * FROM matches WHERE search_id = ? AND person_id = ?').get(search.id, kid.id)
   assert.equal((await api(marys, 'POST', `/matches/${match.id}/dismiss`)).status, 403) // not their person
   assert.equal((await api(river, 'POST', `/matches/${match.id}/dismiss`)).status, 200)
+  assert.equal(db.prepare('SELECT name FROM people WHERE id = ?').get(kid.id).name, null) // dismissing does not name anyone
   assert.ok(!(await api(river, 'GET', '/incoming')).body.toConfirm.some((m) => m.id === match.id))
   assert.equal((await cards(2)).find((c) => c.id === search.id).new_activity, false)
   // It no longer counts as a match for that search.

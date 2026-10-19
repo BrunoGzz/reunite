@@ -31,14 +31,14 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 | Case | Where to look |
 |---|---|
-| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits at the child's shelter (Riverside) under "Looking for people here" as a "Possible match to confirm". Confirm it there and the mother's search at St. Mary's lights up in "Our searches". |
+| An 8-year-old from Lincoln Elementary, registered without a name. His mother searches from another shelter. | Only the last known place, his age and his red backpack connect them, so the match waits at the child's shelter (Riverside) under "Looking for people here" as a "Possible match to confirm", led by the name the family gave: "May be: Daniel Reyes". Staff checks it with the child. Confirm saves the name on his record and the mother's search at St. Mary's lights up in "Our searches". |
 | An 81-year-old mother moved out of a care home by another agency, flagged "needs assistance". Her daughter is searching. | At Riverside, "Our searches" shows the daughter's search highlighted. Send a contact request from its results: it goes to Harbor View Hotel, where she is, labelled "Staff decides: this person can't decide alone". No other shelter sees it. |
 | A couple searching for each other. | Riverside and St. Mary's both see their search highlighted with a Reciprocal badge. Both directions score 85% or more, so their request needs no photo. |
 | A person registered under an alias ("Mr. Blue"). | Riverside's open search for "Tomas Ferrer" finds him through marks and place, with a lower score. |
 | A person who will decline contact. | At Harbor View Hotel, open "Looking for people here" and decline. At Riverside, the search card in "Our searches" still says "Request sent. Pending confirmation." |
-| A husband rescued later. | Keep Harbor View's window open. At the bottom of the sidebar press "Register late arrival". His wife's search lights up in "Our searches" within 15 seconds. |
+| A husband rescued later. | Harbor View has an open search by his wife for Tom Whitaker. He is not registered anywhere yet. Keep Harbor View's window open, then register him at another shelter ("Register a person": Tom Whitaker, male, 58, last place Pelican Street). His wife's search lights up in "Our searches" within 15 seconds. |
 
-"Reset demo data", next to it, puts everything back.
+"Reset demo data", at the bottom of the sidebar, puts everything back.
 
 ### Screenshots
 
@@ -54,7 +54,7 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Looking for people here](docs/screenshots/looking-for-people-here.png)
 
-**Possible match to confirm.** A strong match where a name is missing goes to the shelter where the registered person is, because only staff there can tell whether it fits. Confirm alerts the family's shelter. Dismiss tells nobody.
+**Possible match to confirm.** A strong match where a name is missing goes to the shelter where the registered person is, because only staff there can tell whether it fits. The card leads with the name the family gave ("May be: Daniel Reyes") so staff can check it with the child. Confirm saves that name on the record and alerts the family's shelter. Dismiss saves nothing and tells nobody.
 
 ![Possible match to confirm](docs/screenshots/possible-match-to-confirm.png)
 
@@ -126,7 +126,7 @@ The test for each screen was: can an exhausted volunteer with a queue in front o
 - **A shelter deciding its own request.** A shelter can never accept or decline a request it sent, and the API refuses it too. It only sees that request in "Our searches" as "Request sent. Pending confirmation." If the person asked about is at the same shelter, the request shows in both places, as "Elena Delgado (here) is looking for Rosa Delgado (also here)", and is decided there.
 - **Minors.** Under 18 is flagged automatically. Their contact requests go to the shelter where they are, labelled "Staff decides: this person can't decide alone", and the volunteer there decides for them.
 - **People who cannot decide (for example dementia).** A "needs assistance" flag works the same way: the request goes to their shelter and staff decides.
-- **Matches without a name.** A strong match where a name is missing (a child who cannot say his name) is not alerted automatically. The shelter where the registered person is sees it as a "Possible match to confirm" with Confirm and Dismiss, because only staff there can tell whether it fits. No other shelter sees it.
+- **Matches without a name.** A strong match where a name is missing (a child who cannot say his name) is not alerted automatically. The shelter where the registered person is sees it as a "Possible match to confirm" with Confirm and Dismiss, because only staff there can tell whether it fits. The card shows the name the family gave ("May be: Leo Martinez") so staff can check it with the person, and Confirm saves that name on the person's record. It never shows who is searching or where. No other shelter sees it.
 - **Declines that cannot be told apart.** After "Decline", the search card still says "Request sent. Pending confirmation.", exactly as if nobody had answered. Later requests from the same searcher to the same person, even from a new search, are dropped silently and also look pending.
 - **Noise.** Voice recording asks the browser for noise suppression and echo cancellation. The form is always there as a backup.
 - **Badly transcribed names.** The AI marks uncertain values as low confidence, and they turn yellow with "Please check". The volunteer can fix any field by typing, and the transcript is shown during review.

@@ -46,7 +46,7 @@ There is no login and there are no roles. The app opens straight away, and a lef
   - Our searches: people this shelter is looking for (count: searches with something new),
   - Looking for people here: everything others started about people registered at this shelter: contact requests, and possible matches to confirm (count: items waiting),
   - People here (count: how many are registered, as a plain number),
-- at the very bottom, two small, discreet demo tools: "Register late arrival" and "Reset demo data".
+- at the very bottom, one small, discreet demo tool: "Reset demo data".
 
 Register and Search are not in the navigation. They are reached from Home. Changing the shelter returns to Home, so no page keeps showing another shelter's data. The sidebar polls every 15 seconds (no websockets). The old addresses `/attention` and `/requests` redirect to Our searches and Looking for people here.
 
@@ -140,7 +140,7 @@ A card with something new (a new alert, or a reunion) is highlighted with a "New
 
 Contact requests about people registered at this shelter, phrased "Someone is looking for Juan Pérez (here)". Each card shows the photo, who is asking, the message, and two big buttons: Accept and Decline (each asks to confirm). The volunteer shows this to the person, and they decide. Below, "Accepted" lists requests that were accepted, with where the family is. Declined requests are not listed. Empty state: "No one is looking for people here right now. When a family asks about someone registered at this shelter, it will appear on this page."
 
-Possible matches to confirm. A strong match (85% or more) where a name is missing on one side is not alerted automatically. It goes to the shelter where the registered person is, and shows in the same page as "Possible match to confirm", next to the requests: what the family describes, what is registered here (sex, age, last place, marks), why it matches, and two buttons, Confirm and Dismiss. Confirm raises the alert for the searcher's shelter. Dismiss removes it and tells nobody. The searcher and the searcher's shelter are never shown. This is how the nameless child in the demo is handled: only staff at his shelter can tell whether the description fits the child in front of them.
+Possible matches to confirm. A strong match (85% or more) where a name is missing on one side is not alerted automatically. It goes to the shelter where the registered person is, and shows in the same page as "Possible match to confirm", next to the requests. When the family gave a name and the registered person has none, the card leads with that name, "May be: Leo Martinez", so staff can check it with the person. Below it: what the family describes (sex, age, last place), what is registered here (sex, age, last place, marks), why it matches, and two buttons, Confirm and Dismiss. Confirm raises the alert for the searcher's shelter and saves the name from the search on the registered person's record (a name that is already registered is never overwritten). Dismiss removes the item, saves nothing and tells nobody. The searcher and the searcher's shelter are never shown, only the name of the person being looked for. This is how the nameless child in the demo is handled: only staff at his shelter can tell whether the description and the name fit the child in front of them.
 
 No other shelter sees these items (requests for minors and for people who need help deciding, and possible matches to confirm), in the lists, in the counts, or through the API: confirming, dismissing, deciding and fetching a photo all return 403 for any other shelter.
 
@@ -161,10 +161,9 @@ What happens on each decision:
 
 ### 4.9 Demo tools
 
-Two small text buttons at the bottom of the sidebar, for showing the project, available everywhere:
+One small text button at the bottom of the sidebar, for showing the project, available everywhere:
 
-- "Register late arrival": registers the husband "rescued later" at St. Mary's and triggers the automatic alert for his wife's search. A short confirmation appears under the buttons.
-- "Reset demo data": asks for a second click ("Yes, reset" or "Cancel"), then rebuilds the demo data.
+- "Reset demo data": asks for a second click ("Yes, reset" or "Cancel"), then rebuilds the demo data. A short confirmation appears under it.
 
 ## 5. Behaviour
 
@@ -324,7 +323,7 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 3. A couple searching for each other (reciprocal).
 4. A person registered under an alias.
 5. A case where the sought person declines contact.
-6. A husband "rescued later": not in the seed, but his wife has an open search. The sidebar button "Register late arrival" registers him and triggers the alert live.
+6. A husband "rescued later": he is not registered anywhere, but his wife (at Harbor View) has an open search for him. Registering Tom Whitaker (male, 58, last place Pelican Street) at any other shelter makes her search light up.
 
 "Reset demo data" rebuilds all of this.
 

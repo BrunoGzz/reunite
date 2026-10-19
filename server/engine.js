@@ -184,6 +184,8 @@ export function approveMatch(matchId) {
   if (!match || match.state !== 'needs_review') return null
   const search = db.prepare('SELECT * FROM searches WHERE id = ?').get(match.search_id)
   const person = db.prepare('SELECT * FROM people WHERE id = ?').get(match.person_id)
+  // The family named the person and staff here has checked it with them: keep the name on the record.
+  if (!person.name && search.name) db.prepare('UPDATE people SET name = ? WHERE id = ?').run(search.name, person.id)
   alertShelters(match, search, person, reciprocalSearch(search, person)) // the match is already at 85% or more
   return match
 }

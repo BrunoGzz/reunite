@@ -35,17 +35,11 @@ export default function Sidebar({ me, shelters, onChoose, badges, refresh }) {
   )
 }
 
-// Small, discreet tools for showing the project.
+// A small, discreet tool for showing the project.
 function DemoTools({ refresh }) {
   const [note, setNote] = useState('')
   const [confirming, setConfirming] = useState(false)
   const navigate = useNavigate()
-
-  async function lateArrival() {
-    const done = await post('/api/demo/late-arrival')
-    setNote(`${done.name} was registered at ${done.shelter}.`)
-    refresh()
-  }
 
   async function reset() {
     await post('/api/demo/reset')
@@ -58,7 +52,6 @@ function DemoTools({ refresh }) {
   return (
     <div className="demo-tools">
       <div className="demo-buttons">
-        <button type="button" onClick={lateArrival}>Register late arrival</button>
         {!confirming && <button type="button" onClick={() => setConfirming(true)}>Reset demo data</button>}
         {confirming && <button type="button" className="danger" onClick={reset}>Yes, reset</button>}
         {confirming && <button type="button" onClick={() => setConfirming(false)}>Cancel</button>}
