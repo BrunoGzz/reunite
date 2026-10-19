@@ -74,7 +74,7 @@ Open the live demo. There is no login: use the shelter selector at the top of th
 
 ![Search results](docs/screenshots/search-results.png)
 
-The photo in these screenshots is a neutral stand-in from a fake camera. All names are demo data.
+The photos in these screenshots are placeholder silhouettes that match the sex of the person looking (a female, a male and a neutral one are in `server/placeholders/`). They are not real people. All names are demo data.
 
 [TODO: add team names, DALI submission details and a demo video link, if any.]
 

@@ -2,6 +2,9 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import http from 'node:http'
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 const TRANSCRIPT = 'Se llama Itziar Etxeberria, tiene unos cincuenta anos y una cicatriz en la mano.'
 
@@ -45,6 +48,7 @@ await new Promise((resolve) => mock.listen(0, '127.0.0.1', resolve))
 const mockUrl = `http://127.0.0.1:${mock.address().port}`
 
 process.env.REUNITE_DB = ':memory:'
+process.env.REUNITE_PHOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'reunite-photos-')) // never the real photo folder
 process.env.OPENAI_API_KEY = 'test-openai'
 process.env.DEEPSEEK_API_KEY = 'test-deepseek'
 process.env.DEEPSEEK_MODEL = 'deepseek-flash'

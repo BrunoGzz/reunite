@@ -325,6 +325,8 @@ Warm and human, in the spirit of Airbnb. Not an executive dashboard.
 5. A case where the sought person declines contact.
 6. A husband "rescued later": he is not registered anywhere, but his wife (at Harbor View) has an open search for him. Registering Tom Whitaker (male, 58, last place Pelican Street) at any other shelter makes her search light up.
 
+The example request (Victor Santos to Maria Santos) comes with a placeholder photo: a silhouette that matches the sex of the person looking (`server/placeholders/` holds a female, a male and a neutral one, used when the sex is unknown). They are drawings, not real people. Like any photo, it is deleted when the request is decided, and only the shelter where the person is registered can fetch it.
+
 "Reset demo data" rebuilds all of this.
 
 ## 10. Decisions I made that you may want to change

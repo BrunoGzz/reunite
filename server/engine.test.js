@@ -1,8 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 
 process.env.REUNITE_DB = ':memory:'
+process.env.REUNITE_PHOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'reunite-photos-')) // never the real photo folder
 const { default: db, photoDir } = await import('./db.js')
 const engine = await import('./engine.js')
 const { seed } = await import('./seed.js')

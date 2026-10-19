@@ -5,6 +5,13 @@ import { fileURLToPath } from 'node:url'
 import db, { now, photoDir } from './db.js'
 import { addPerson, addSearch, runSearch, matchNewPerson, createRequest } from './engine.js'
 
+// A stand-in photo that matches the sex of the person looking: a silhouette, not a real person.
+const placeholders = path.join(path.dirname(fileURLToPath(import.meta.url)), 'placeholders')
+export function placeholderPhoto(sex) {
+  const name = sex === 'female' || sex === 'male' ? sex : 'neutral'
+  return fs.readFileSync(path.join(placeholders, `${name}.png`))
+}
+
 const SHELTERS = [
   { name: 'Riverside High School Shelter', address: '120 River Road, Gym entrance', phone: '555-0101', instructions: 'Come to the front desk and ask for the reunification table. Bring this reference if you have it.' },
   { name: "St. Mary's Community Center", address: '48 Church Street, Main hall', phone: '555-0102', instructions: 'Ask for the volunteer lead at the entrance. Families are reunited in the side room.' },
@@ -87,7 +94,8 @@ export function seed() {
 
   // The sought person at Harbor View has a pending request waiting, ready to be declined live.
   const mariaMatch = db.prepare('SELECT m.* FROM matches m WHERE m.search_id = ? ORDER BY m.score DESC').get(victorSearch.id)
-  createRequest({ match: mariaMatch, message: 'Please let me know you are safe.', photo: null })
+  // The example request comes with a placeholder photo that matches the sex of the person who sent it.
+  createRequest({ match: mariaMatch, message: 'Please let me know you are safe.', photo: { buffer: placeholderPhoto(victor.sex) } })
 }
 
 export function resetDemo() {

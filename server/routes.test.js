@@ -4,13 +4,15 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import fs from 'node:fs'
 import path from 'node:path'
+import os from 'node:os'
 
 process.env.REUNITE_DB = ':memory:'
+process.env.REUNITE_PHOTOS = fs.mkdtempSync(path.join(os.tmpdir(), 'reunite-photos-')) // never the real photo folder
 process.env.OPENAI_API_KEY = '' // voice stays "not configured" and never calls out
 process.env.DEEPSEEK_API_KEY = ''
 const { default: db, photoDir } = await import('./db.js')
 const { createApp, routers } = await import('./app.js')
-const { seed } = await import('./seed.js')
+const { seed, placeholderPhoto: placeholder } = await import('./seed.js')
 const engine = await import('./engine.js')
 seed()
 
@@ -80,6 +82,28 @@ test('the session remembers the chosen shelter and can be switched', async () =>
   assert.deepEqual((await api(cookie, 'GET', '/me')).body, { shelterId: 1, shelterName: 'Riverside High School Shelter' })
   await api(cookie, 'POST', '/session', { shelterId: 3 })
   assert.deepEqual((await api(cookie, 'GET', '/me')).body, { shelterId: 3, shelterName: 'Harbor View Hotel (emergency housing)' })
+})
+
+test('the seeded example request has a placeholder photo that matches the sex of the sender', async () => {
+  const seeded = db.prepare("SELECT id, photo_file FROM contact_requests WHERE message LIKE 'Please let me know%'").get()
+  assert.ok(seeded.photo_file, 'the example request should come with a photo')
+  const file = path.join(photoDir, seeded.photo_file)
+  assert.ok(fs.existsSync(file))
+
+  // Victor (male) sent it, so the photo is the male silhouette. Only Harbor, where Maria is, may see it.
+  const male = placeholder('male'), female = placeholder('female'), neutral = placeholder('unknown')
+  assert.ok(!male.equals(female) && !male.equals(neutral) && !female.equals(neutral), 'three different pictures')
+  assert.ok(neutral.equals(placeholder('something else')), 'an unknown sex gets the neutral picture')
+  assert.ok(fs.readFileSync(file).equals(male))
+  const res = await fetch(`${base}/api/photos/${seeded.id}`, { headers: { cookie: await cookieFor(3) } })
+  assert.equal(res.status, 200)
+  assert.ok(Buffer.from(await res.arrayBuffer()).equals(male))
+  for (const other of [1, 2]) assert.equal((await fetch(`${base}/api/photos/${seeded.id}`, { headers: { cookie: await cookieFor(other) } })).status, 403)
+
+  // Like every photo, it is deleted when the request is decided.
+  assert.equal((await api(await cookieFor(3), 'POST', `/requests/${seeded.id}/decide`, { decision: 'decline' })).status, 200)
+  assert.equal(fs.existsSync(file), false)
+  assert.equal(db.prepare('SELECT photo_file FROM contact_requests WHERE id = ?').get(seeded.id).photo_file, null)
 })
 
 const cards = async (shelter) => (await api(await cookieFor(shelter), 'GET', '/searches')).body
